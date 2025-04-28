@@ -1278,7 +1278,7 @@ contract ProtocolFactoryTest is AragonTest {
         assertEq(
             preparedSetupData.permissions.length,
             3,
-            "No admin permissions"
+            "Wrong admin permissions"
         );
     }
 
@@ -1344,16 +1344,143 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
+        DAO targetDao = _createTestDao("multisigtestdao", deployment);
+        PluginSetupProcessor psp = PluginSetupProcessor(
+            deployment.pluginSetupProcessor
+        );
+        PluginSetupRef memory pluginSetupRef = PluginSetupRef(
+            PluginRepo.Tag(
+                deploymentParams.corePlugins.multisigPlugin.release,
+                deploymentParams.corePlugins.multisigPlugin.build
+            ),
+            PluginRepo(deployment.multisigPluginRepo)
+        );
+        IPlugin.TargetConfig memory targetConfig = IPlugin.TargetConfig({
+            target: address(targetDao),
+            operation: IPlugin.Operation.Call
+        });
+
+        address[] memory members = new address[](3);
+        members[0] = bob;
+        members[1] = carol;
+        members[2] = david;
+        bytes memory setupData = abi.encode(
+            members,
+            Multisig.MultisigSettings({onlyListed: true, minApprovals: 2}),
+            targetConfig,
+            bytes("") // metadata
+        );
+
         // It should complete normally
-        vm.skip(true);
+        (
+            address pluginAddress,
+            IPluginSetup.PreparedSetupData memory preparedSetupData
+        ) = psp.prepareInstallation(
+                address(targetDao),
+                PluginSetupProcessor.PrepareInstallationParams(
+                    pluginSetupRef,
+                    setupData
+                )
+            );
+        assertNotEq(pluginAddress, address(0));
+        assertTrue(pluginAddress.code.length > 0, "No code at plugin address");
+        assertEq(
+            preparedSetupData.permissions.length,
+            6,
+            "Wrong multisig permissions"
+        );
     }
 
     function test_WhenApplyingAMultisigPluginInstallation()
         external
         givenAProtocolDeployment
     {
-        // It should allow its members to approve and execute on the DAO
-        vm.skip(true);
+        DAO targetDao = _createTestDao("multisigtestdao2", deployment);
+        PluginSetupRef memory pluginSetupRef = PluginSetupRef(
+            PluginRepo.Tag(
+                deploymentParams.corePlugins.multisigPlugin.release,
+                deploymentParams.corePlugins.multisigPlugin.build
+            ),
+            PluginRepo(deployment.multisigPluginRepo)
+        );
+        IPlugin.TargetConfig memory targetConfig = IPlugin.TargetConfig({
+            target: address(targetDao),
+            operation: IPlugin.Operation.Call
+        });
+
+        address[] memory members = new address[](3);
+        members[0] = bob;
+        members[1] = carol;
+        members[2] = david;
+        bytes memory setupData = abi.encode(
+            members,
+            Multisig.MultisigSettings({onlyListed: true, minApprovals: 2}),
+            targetConfig,
+            bytes("") // metadata
+        );
+
+        address pluginAddress = _installPlugin(
+            targetDao,
+            pluginSetupRef,
+            setupData
+        );
+        Multisig multisigPlugin = Multisig(pluginAddress);
+
+        // Allow the test script to create proposals on the plugin
+        Action[] memory actions = new Action[](1);
+        actions[0] = Action({
+            to: address(targetDao),
+            value: 0,
+            data: abi.encodeCall(
+                PermissionManager.grant,
+                (
+                    pluginAddress,
+                    address(this),
+                    multisigPlugin.CREATE_PROPOSAL_PERMISSION_ID()
+                )
+            )
+        });
+        targetDao.execute(bytes32(0), actions, 0);
+
+        // Try to change the DAO URI
+        string memory newDaoUri = "https://new-uri";
+        assertNotEq(targetDao.daoURI(), newDaoUri, "Execution failed");
+        bytes memory executeCalldata = abi.encodeCall(
+            DAO.setDaoURI,
+            (newDaoUri)
+        );
+
+        actions[0] = Action({
+            to: address(targetDao),
+            value: 0,
+            data: executeCalldata
+        });
+
+        // Create proposal
+        vm.roll(block.number + 1);
+        uint256 proposalId = multisigPlugin.createProposal(
+            "ipfs://proposal-meta",
+            actions,
+            0,
+            uint64(block.timestamp + 20000),
+            bytes("")
+        );
+
+        // Approve (Bob)
+        vm.prank(bob);
+        multisigPlugin.approve(proposalId, false);
+
+        // Approve (Carol)
+        vm.prank(carol);
+        multisigPlugin.approve(proposalId, false);
+
+        // Execute (David)
+        assertTrue(multisigPlugin.canExecute(proposalId));
+        vm.prank(david);
+        multisigPlugin.execute(proposalId);
+
+        // Verify execution
+        assertEq(targetDao.daoURI(), newDaoUri, "Execution failed");
     }
 
     function test_WhenPreparingATokenVotingPluginInstallation()
