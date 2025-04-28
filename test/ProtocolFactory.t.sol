@@ -26,6 +26,7 @@ import {ENSSubdomainRegistrar} from "@aragon/osx/framework/utils/ens/ENSSubdomai
 import {Admin} from "@aragon/admin-plugin/Admin.sol";
 import {Multisig} from "@aragon/multisig-plugin/Multisig.sol";
 import {TokenVoting} from "@aragon/token-voting-plugin/TokenVoting.sol";
+import {MajorityVotingBase} from "@aragon/token-voting-plugin/MajorityVotingBase.sol";
 import {StagedProposalProcessor} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 
 // ENS Imports
@@ -1344,7 +1345,7 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
-        DAO targetDao = _createTestDao("multisigtestdao", deployment);
+        DAO targetDao = _createTestDao("dao-with-multisig", deployment);
         PluginSetupProcessor psp = PluginSetupProcessor(
             deployment.pluginSetupProcessor
         );
@@ -1395,7 +1396,7 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
-        DAO targetDao = _createTestDao("multisigtestdao2", deployment);
+        DAO targetDao = _createTestDao("dao-with-multisig2", deployment);
         PluginSetupRef memory pluginSetupRef = PluginSetupRef(
             PluginRepo.Tag(
                 deploymentParams.corePlugins.multisigPlugin.release,
@@ -1487,8 +1488,71 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
+        DAO targetDao = _createTestDao("dao-with-token-voting", deployment);
+        PluginSetupProcessor psp = PluginSetupProcessor(
+            deployment.pluginSetupProcessor
+        );
+        PluginSetupRef memory pluginSetupRef = PluginSetupRef(
+            PluginRepo.Tag(
+                deploymentParams.corePlugins.tokenVotingPlugin.release,
+                deploymentParams.corePlugins.tokenVotingPlugin.build
+            ),
+            PluginRepo(deployment.tokenVotingPluginRepo)
+        );
+
+        // Setup
+        TokenVotingSetup.TokenSettings memory tokenSettings = TokenVotingSetup
+            .TokenSettings({
+                addr: address(0),
+                name: "Test Token",
+                symbol: "TST"
+            });
+        TokenVoting.VotingSettings memory votingSettings = MajorityVotingBase
+            .VotingSettings({
+                votingMode: MajorityVotingBase.VotingMode.Standard,
+                supportThreshold: 500_000, // 50%
+                minParticipation: 100_000, // 10%
+                minDuration: 1 days,
+                minProposerVotingPower: 1 // Minimal requirement
+            });
+        IPlugin.TargetConfig memory targetConfig = IPlugin.TargetConfig({
+            target: address(targetDao),
+            operation: IPlugin.Operation.Call
+        });
+        GovernanceERC20.MintSettings memory mintSettings = GovernanceERC20
+            .MintSettings(new address[](2), new uint256[](2));
+        mintSettings.receivers[0] = alice;
+        mintSettings.amounts[0] = 1 ether;
+        mintSettings.receivers[1] = bob;
+        mintSettings.amounts[1] = 0.1 ether;
+
+        bytes memory setupData = abi.encode(
+            votingSettings,
+            tokenSettings,
+            mintSettings,
+            targetConfig,
+            100_000, // minApprovals ratio
+            bytes("ipfs://tv-metadata")
+        );
+
         // It should complete normally
-        vm.skip(true);
+        (
+            address pluginAddress,
+            IPluginSetup.PreparedSetupData memory preparedSetupData
+        ) = psp.prepareInstallation(
+                address(targetDao),
+                PluginSetupProcessor.PrepareInstallationParams(
+                    pluginSetupRef,
+                    setupData
+                )
+            );
+        assertNotEq(pluginAddress, address(0));
+        assertTrue(pluginAddress.code.length > 0, "No code at plugin address");
+        assertEq(
+            preparedSetupData.permissions.length,
+            7,
+            "Wrong multisig permissions"
+        );
     }
 
     function test_WhenApplyingATokenVotingPluginInstallation()
