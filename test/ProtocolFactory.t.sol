@@ -1316,7 +1316,11 @@ contract ProtocolFactoryTest is AragonTest {
         Admin adminPlugin = Admin(pluginAddress);
 
         string memory newDaoUri = "https://new-uri";
-        assertNotEq(targetDao.daoURI(), newDaoUri, "Execution failed");
+        assertNotEq(
+            targetDao.daoURI(),
+            newDaoUri,
+            "Should not have the new value yet"
+        );
         bytes memory executeCalldata = abi.encodeCall(
             DAO.setDaoURI,
             (newDaoUri)
@@ -1447,7 +1451,11 @@ contract ProtocolFactoryTest is AragonTest {
 
         // Try to change the DAO URI via proposal
         string memory newDaoUri = "https://new-uri";
-        assertNotEq(targetDao.daoURI(), newDaoUri, "Execution failed");
+        assertNotEq(
+            targetDao.daoURI(),
+            newDaoUri,
+            "Should not have the new value yet"
+        );
         bytes memory executeCalldata = abi.encodeCall(
             DAO.setDaoURI,
             (newDaoUri)
@@ -1627,7 +1635,11 @@ contract ProtocolFactoryTest is AragonTest {
 
         // Try to change the DAO URI via proposal
         string memory newDaoUri = "https://another-uri";
-        assertNotEq(targetDao.daoURI(), newDaoUri, "Execution failed");
+        assertNotEq(
+            targetDao.daoURI(),
+            newDaoUri,
+            "Should not have the new value yet"
+        );
         bytes memory executeCalldata = abi.encodeCall(
             DAO.setDaoURI,
             (newDaoUri)
@@ -1750,8 +1762,119 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
-        // It should allow its bodies to execute on the DAO
-        vm.skip(true);
+        DAO targetDao = _createTestDao("dao-with-spp2", deployment);
+
+        // SPP setup
+        PluginSetupRef memory pluginSetupRef = PluginSetupRef(
+            PluginRepo.Tag(
+                deploymentParams
+                    .corePlugins
+                    .stagedProposalProcessorPlugin
+                    .release,
+                deploymentParams.corePlugins.stagedProposalProcessorPlugin.build
+            ),
+            PluginRepo(deployment.stagedProposalProcessorPluginRepo)
+        );
+        StagedProposalProcessor.Body[]
+            memory bodies = new StagedProposalProcessor.Body[](1);
+
+        // Set the address of this script as the "body"
+        bodies[0] = StagedProposalProcessor.Body({
+            addr: address(this),
+            isManual: true,
+            tryAdvance: true,
+            resultType: StagedProposalProcessor.ResultType.Approval
+        });
+
+        StagedProposalProcessor.Stage[]
+            memory stages = new StagedProposalProcessor.Stage[](1);
+        stages[0] = StagedProposalProcessor.Stage({
+            bodies: bodies,
+            maxAdvance: 1000, // uint64
+            minAdvance: 0, // uint64
+            voteDuration: 0, // uint64
+            approvalThreshold: 1,
+            vetoThreshold: 1,
+            cancelable: false,
+            editable: false
+        });
+        IPlugin.TargetConfig memory targetConfig = IPlugin.TargetConfig({
+            target: address(targetDao),
+            operation: IPlugin.Operation.Call
+        });
+        bytes memory setupData = abi.encode(
+            bytes("ipfs://spp-metadata"),
+            stages,
+            new RuledCondition.Rule[](0),
+            targetConfig
+        );
+
+        address pluginAddress = _installPlugin(
+            targetDao,
+            pluginSetupRef,
+            setupData
+        );
+        StagedProposalProcessor sppPlugin = StagedProposalProcessor(
+            pluginAddress
+        );
+        vm.label(pluginAddress, "SPP");
+
+        // Allow this script to create proposals on the plugin
+        Action[] memory actions = new Action[](1);
+        actions[0] = Action({
+            to: address(targetDao),
+            value: 0,
+            data: abi.encodeCall(
+                PermissionManager.grant,
+                (
+                    pluginAddress,
+                    address(this),
+                    keccak256("CREATE_PROPOSAL_PERMISSION")
+                )
+            )
+        });
+        targetDao.execute(bytes32(0), actions, 0);
+
+        // Try to change the DAO URI via proposal
+        string memory newDaoUri = "https://another-uri";
+        assertNotEq(
+            targetDao.daoURI(),
+            newDaoUri,
+            "Should not have the new value yet"
+        );
+        bytes memory executeCalldata = abi.encodeCall(
+            DAO.setDaoURI,
+            (newDaoUri)
+        );
+        actions[0] = Action({
+            to: address(targetDao),
+            value: 0,
+            data: executeCalldata
+        });
+
+        // Create proposal
+        vm.roll(block.number + 1);
+        uint256 proposalId = sppPlugin.createProposal(
+            "ipfs://proposal-meta",
+            actions,
+            0,
+            0,
+            abi.encode(new bytes[][](0))
+        );
+
+        // Report a positive result to make it advance
+        sppPlugin.reportProposalResult(
+            proposalId,
+            0,
+            StagedProposalProcessor.ResultType.Approval,
+            false
+        );
+
+        assertTrue(sppPlugin.canExecute(proposalId));
+        sppPlugin.execute(proposalId);
+
+        // Verify execution
+        assertEq(targetDao.daoURI(), newDaoUri, "Execution failed");
     }
 
     // Helpers
@@ -1792,6 +1915,7 @@ contract ProtocolFactoryTest is AragonTest {
             daoSettings,
             new DAOFactory.PluginSettings[](0)
         );
+        vm.label(address(newDao), "TestDAO");
         return newDao;
     }
 
@@ -1817,6 +1941,7 @@ contract ProtocolFactoryTest is AragonTest {
                 )
             );
         pluginAddress = _pluginAddress; // Store the result
+        vm.label(pluginAddress, "TestPlugin");
 
         // Grant temporary permissions for applying
         Action[] memory actions = new Action[](2);
@@ -1856,32 +1981,5 @@ contract ProtocolFactoryTest is AragonTest {
                 hashHelpers(preparedSetupData.helpers)
             )
         );
-
-        // Revoke the temporary permissions
-        actions[0] = Action({
-            to: address(_targetDao),
-            value: 0,
-            data: abi.encodeCall(
-                PermissionManager.revoke,
-                (
-                    address(_targetDao),
-                    address(psp),
-                    _targetDao.ROOT_PERMISSION_ID()
-                )
-            )
-        });
-        actions[1] = Action({
-            to: address(_targetDao),
-            value: 0,
-            data: abi.encodeCall(
-                PermissionManager.revoke,
-                (
-                    address(psp),
-                    address(this), // Test contract applies
-                    psp.APPLY_INSTALLATION_PERMISSION_ID()
-                )
-            )
-        });
-        _targetDao.execute(bytes32(0), actions, 0);
     }
 }
