@@ -71,3 +71,7 @@ ProtocolFactoryTest:
       - when: Applying an SPP plugin installation
         then:
           - it: Should allow its bodies to execute on the DAO
+      - when: Calling hasPermission
+        then:
+          - it: Returns true on all the permissions that the Management DAO should have on itself
+          - it: Returns false on all the temporary permissions granted to the factory

@@ -47,7 +47,9 @@ ProtocolFactoryTest
     │   └── It Should allow its members to approve and execute on the DAO
     ├── When Preparing an SPP plugin installation
     │   └── It Should complete normally
-    └── When Applying an SPP plugin installation
-        └── It Should allow its bodies to execute on the DAO
+    ├── When Applying an SPP plugin installation
+    │   └── It Should allow its bodies to execute on the DAO
+    └── When Calling hasPermission
+        └── It Returns false on all the temporary permissions granted to the factory
 ```
 

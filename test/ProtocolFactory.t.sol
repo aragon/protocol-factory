@@ -1151,7 +1151,7 @@ contract ProtocolFactoryTest is AragonTest {
             mgmtDaoMembers.length,
             "Member count mismatch"
         );
-        for (uint i = 0; i < mgmtDaoMembers.length; i++) {
+        for (uint256 i = 0; i < mgmtDaoMembers.length; i++) {
             assertTrue(
                 multisig.isListed(mgmtDaoMembers[i]),
                 "Member address mismatch"
@@ -1875,6 +1875,468 @@ contract ProtocolFactoryTest is AragonTest {
 
         // Verify execution
         assertEq(targetDao.daoURI(), newDaoUri, "Execution failed");
+    }
+
+    function test_WhenCallingHasPermission() external givenAProtocolDeployment {
+        // It Returns true on all the permissions that the Management DAO should have on itself
+        // It Returns false on all the temporary permissions granted to the factory
+
+        DAO managementDao = DAO(payable(deployment.managementDao));
+
+        // ROOT
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                deployment.managementDao,
+                managementDao.ROOT_PERMISSION_ID(),
+                ""
+            ),
+            "Should have ROOT_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                address(factory),
+                managementDao.ROOT_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have ROOT_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                address(this), // Deployer
+                managementDao.ROOT_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have ROOT_PERMISSION_ID"
+        );
+
+        // EXECUTE
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                deployment.managementDao,
+                managementDao.EXECUTE_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have EXECUTE_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                address(factory),
+                managementDao.EXECUTE_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have EXECUTE_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                address(this), // Deployer
+                managementDao.EXECUTE_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have EXECUTE_PERMISSION_ID"
+        );
+
+        // UPGRADE
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                deployment.managementDao,
+                managementDao.UPGRADE_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have UPGRADE_DAO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                address(factory),
+                managementDao.UPGRADE_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_DAO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                address(this), // Deployer
+                managementDao.UPGRADE_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_DAO_PERMISSION_ID"
+        );
+
+        // REGISTER_STANDARD_CALLBACK
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                deployment.managementDao,
+                managementDao.REGISTER_STANDARD_CALLBACK_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_STANDARD_CALLBACK_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                address(factory),
+                managementDao.REGISTER_STANDARD_CALLBACK_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_STANDARD_CALLBACK_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.managementDao,
+                address(this), // Deployer
+                managementDao.REGISTER_STANDARD_CALLBACK_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_STANDARD_CALLBACK_PERMISSION_ID"
+        );
+
+        // REGISTRIES
+
+        // REGISTER_DAO_PERMISSION_ID
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                address(deployment.daoFactory),
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                deployment.managementDao,
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                address(factory),
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                address(this),
+                DAORegistry(deployment.daoRegistry)
+                    .REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_DAO_PERMISSION_ID"
+        );
+
+        // UPGRADE_REGISTRY_PERMISSION_ID
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                address(deployment.daoFactory),
+                DAORegistry(deployment.daoRegistry)
+                    .UPGRADE_REGISTRY_PERMISSION_ID(),
+                ""
+            ),
+            "Should have UPGRADE_REGISTRY_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                deployment.managementDao,
+                DAORegistry(deployment.daoRegistry)
+                    .UPGRADE_REGISTRY_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRY_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                address(factory),
+                DAORegistry(deployment.daoRegistry)
+                    .UPGRADE_REGISTRY_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRY_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                address(this),
+                DAORegistry(deployment.daoRegistry)
+                    .UPGRADE_REGISTRY_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRY_PERMISSION_ID"
+        );
+
+        // REGISTER_PLUGIN_REPO_PERMISSION_ID
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                address(deployment.pluginRepoFactory),
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                deployment.managementDao,
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                address(factory),
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                address(this),
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+
+        // UPGRADE_REGISTRY_PERMISSION_ID
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                address(deployment.pluginRepoFactory),
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .UPGRADE_REGISTRY_PERMISSION_ID(),
+                ""
+            ),
+            "Should have UPGRADE_REGISTRY_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                deployment.managementDao,
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .UPGRADE_REGISTRY_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRY_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                address(factory),
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .UPGRADE_REGISTRY_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRY_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                address(this),
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .UPGRADE_REGISTRY_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRY_PERMISSION_ID"
+        );
+
+        // ENS
+
+        // REGISTER_ENS_SUBDOMAIN_PERMISSION_ID
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.daoSubdomainRegistrar,
+                address(deployment.daoRegistry),
+                ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
+                    .REGISTER_ENS_SUBDOMAIN_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_ENS_SUBDOMAIN_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoSubdomainRegistrar,
+                deployment.managementDao,
+                ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
+                    .REGISTER_ENS_SUBDOMAIN_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_ENS_SUBDOMAIN_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoSubdomainRegistrar,
+                address(factory),
+                ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
+                    .REGISTER_ENS_SUBDOMAIN_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_ENS_SUBDOMAIN_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoSubdomainRegistrar,
+                address(this),
+                ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
+                    .REGISTER_ENS_SUBDOMAIN_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_ENS_SUBDOMAIN_PERMISSION_ID"
+        );
+
+        //
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.pluginSubdomainRegistrar,
+                address(deployment.pluginRepoRegistry),
+                ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
+                    .REGISTER_ENS_SUBDOMAIN_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_ENS_SUBDOMAIN_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginSubdomainRegistrar,
+                deployment.managementDao,
+                ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
+                    .REGISTER_ENS_SUBDOMAIN_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_ENS_SUBDOMAIN_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginSubdomainRegistrar,
+                address(factory),
+                ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
+                    .REGISTER_ENS_SUBDOMAIN_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_ENS_SUBDOMAIN_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginSubdomainRegistrar,
+                address(this),
+                ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
+                    .REGISTER_ENS_SUBDOMAIN_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_ENS_SUBDOMAIN_PERMISSION_ID"
+        );
+
+        // UPGRADE_REGISTRAR_PERMISSION_ID
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.daoSubdomainRegistrar,
+                address(deployment.daoRegistry),
+                ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
+                    .UPGRADE_REGISTRAR_PERMISSION_ID(),
+                ""
+            ),
+            "Should have UPGRADE_REGISTRAR_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoSubdomainRegistrar,
+                deployment.managementDao,
+                ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
+                    .UPGRADE_REGISTRAR_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRAR_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoSubdomainRegistrar,
+                address(factory),
+                ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
+                    .UPGRADE_REGISTRAR_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRAR_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoSubdomainRegistrar,
+                address(this),
+                ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
+                    .UPGRADE_REGISTRAR_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRAR_PERMISSION_ID"
+        );
+
+        //
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.pluginSubdomainRegistrar,
+                address(deployment.pluginRepoRegistry),
+                ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
+                    .UPGRADE_REGISTRAR_PERMISSION_ID(),
+                ""
+            ),
+            "Should have UPGRADE_REGISTRAR_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginSubdomainRegistrar,
+                deployment.managementDao,
+                ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
+                    .UPGRADE_REGISTRAR_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRAR_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginSubdomainRegistrar,
+                address(factory),
+                ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
+                    .UPGRADE_REGISTRAR_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRAR_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginSubdomainRegistrar,
+                address(this),
+                ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
+                    .UPGRADE_REGISTRAR_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REGISTRAR_PERMISSION_ID"
+        );
+
+        // PLUGINS
     }
 
     // Helpers

@@ -600,6 +600,12 @@ contract ProtocolFactory {
             address(this), // who
             DAO(payable(deployment.managementDao)).EXECUTE_PERMISSION_ID() // permission
         );
+        // Remove the ROOT permission from the factory
+        DAO(payable(deployment.managementDao)).revoke(
+            deployment.managementDao, // where
+            address(this), // who
+            DAO(payable(deployment.managementDao)).ROOT_PERMISSION_ID() // permission
+        );
     }
 
     function createProxyAndCall(
