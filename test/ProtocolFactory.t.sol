@@ -21,7 +21,11 @@ import {PluginSetupProcessor, PluginSetupRef, hashHelpers} from "@aragon/osx/fra
 import {IPluginSetup} from "@aragon/osx-commons-contracts/src/plugin/setup/IPluginSetup.sol";
 import {IPlugin} from "@aragon/osx-commons-contracts/src/plugin/IPlugin.sol";
 import {ENSSubdomainRegistrar} from "@aragon/osx/framework/utils/ens/ENSSubdomainRegistrar.sol";
+
+import {Admin} from "@aragon/admin-plugin/Admin.sol";
 import {Multisig} from "@aragon/multisig-plugin/Multisig.sol";
+import {TokenVoting} from "@aragon/token-voting-plugin/TokenVoting.sol";
+import {StagedProposalProcessor} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 
 // ENS Imports
 import {ENS} from "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
@@ -280,7 +284,7 @@ contract ProtocolFactoryTest is AragonTest {
         // Check DAORegistry/PluginRepoRegistry permissions elsewhere if needed
 
         // 7. Check Implementation Address (optional sanity check)
-        address daoRegImpl = getImplementation(
+        address daoRegImpl = _getImplementation(
             deployment.daoSubdomainRegistrar
         );
         assertEq(
@@ -288,7 +292,7 @@ contract ProtocolFactoryTest is AragonTest {
             deploymentParams.osxImplementations.ensSubdomainRegistrarBase,
             "DAO Registrar Impl mismatch"
         );
-        address pluginRegImpl = getImplementation(
+        address pluginRegImpl = _getImplementation(
             deployment.pluginSubdomainRegistrar
         );
         assertEq(
@@ -906,7 +910,7 @@ contract ProtocolFactoryTest is AragonTest {
         );
         assertNotEq(deployment.managementDao, address(0));
         assertEq(
-            getImplementation(deployment.managementDao),
+            _getImplementation(deployment.managementDao),
             deploymentParams.osxImplementations.daoBase
         );
         assertNotEq(deployment.managementDaoMultisig, address(0));
@@ -1237,8 +1241,42 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
+        IDAO targetDao = _createTestDao("dao-with-admin-plugin", deployment);
+        PluginSetupProcessor psp = PluginSetupProcessor(
+            deployment.pluginSetupProcessor
+        );
+        PluginSetupRef memory pluginSetupRef = PluginSetupRef(
+            PluginRepo.Tag(
+                deploymentParams.corePlugins.adminPlugin.release,
+                deploymentParams.corePlugins.adminPlugin.build
+            ),
+            PluginRepo(deployment.adminPluginRepo)
+        );
+        // Custom prepareInstallation params
+        IPlugin.TargetConfig memory targetConfig = IPlugin.TargetConfig({
+            target: address(targetDao),
+            operation: IPlugin.Operation.Call
+        });
+        bytes memory setupData = abi.encode(bob, targetConfig); // Initial admin and target
+
         // It should complete normally
-        vm.skip(true);
+        (
+            address pluginAddress,
+            IPluginSetup.PreparedSetupData memory preparedSetupData
+        ) = psp.prepareInstallation(
+                address(targetDao),
+                PluginSetupProcessor.PrepareInstallationParams(
+                    pluginSetupRef,
+                    setupData
+                )
+            );
+        assertNotEq(pluginAddress, address(0));
+        assertTrue(pluginAddress.code.length > 0, "No code at plugin address");
+        assertEq(
+            preparedSetupData.permissions.length,
+            3,
+            "No admin permissions"
+        );
     }
 
     function test_WhenApplyingAnAdminPluginInstallation()
@@ -1299,7 +1337,7 @@ contract ProtocolFactoryTest is AragonTest {
 
     // Helpers
 
-    function getImplementation(address proxy) private returns (address) {
+    function _getImplementation(address proxy) private view returns (address) {
         return
             address(
                 uint160(
@@ -1315,5 +1353,85 @@ contract ProtocolFactoryTest is AragonTest {
                     )
                 )
             );
+    }
+
+    // Helper to create a test DAO for plugin installations
+    function _createTestDao(
+        string memory subdomain,
+        ProtocolFactory.Deployment memory _deployment
+    ) internal returns (DAO) {
+        DAOFactory daoFactory = DAOFactory(_deployment.daoFactory);
+
+        DAOFactory.DAOSettings memory daoSettings = DAOFactory.DAOSettings({
+            trustedForwarder: address(0),
+            daoURI: "ipfs://dao-uri",
+            metadata: bytes("ipfs://test-dao-meta"),
+            subdomain: subdomain
+        });
+
+        (DAO newDao, ) = daoFactory.createDao(
+            daoSettings,
+            new DAOFactory.PluginSettings[](0)
+        );
+        return newDao;
+    }
+
+    // Helper to prepare and apply plugin installation
+    function _installPlugin(
+        DAO _targetDao,
+        PluginSetupRef memory _pluginSetupRef,
+        bytes memory _setupData
+    ) internal returns (address pluginAddress) {
+        PluginSetupProcessor psp = PluginSetupProcessor(
+            deployment.pluginSetupProcessor
+        );
+
+        // Prepare
+        (
+            address _pluginAddress,
+            IPluginSetup.PreparedSetupData memory preparedSetupData
+        ) = psp.prepareInstallation(
+                address(_targetDao),
+                PluginSetupProcessor.PrepareInstallationParams(
+                    _pluginSetupRef,
+                    _setupData
+                )
+            );
+        pluginAddress = _pluginAddress; // Store the result
+
+        // Grant permissions for apply
+        _targetDao.grant(
+            address(_targetDao),
+            address(psp),
+            _targetDao.ROOT_PERMISSION_ID()
+        );
+        _targetDao.grant(
+            address(psp),
+            address(this), // Test contract applies
+            psp.APPLY_INSTALLATION_PERMISSION_ID()
+        );
+
+        // Apply
+        psp.applyInstallation(
+            address(_targetDao),
+            PluginSetupProcessor.ApplyInstallationParams(
+                _pluginSetupRef,
+                pluginAddress,
+                preparedSetupData.permissions,
+                hashHelpers(preparedSetupData.helpers)
+            )
+        );
+
+        // Revoke temporary permissions (optional but good practice)
+        _targetDao.revoke(
+            address(_targetDao),
+            address(psp),
+            _targetDao.ROOT_PERMISSION_ID()
+        );
+        _targetDao.revoke(
+            address(psp),
+            address(this),
+            psp.APPLY_INSTALLATION_PERMISSION_ID()
+        );
     }
 }
