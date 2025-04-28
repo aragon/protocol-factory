@@ -27,6 +27,7 @@ import {Admin} from "@aragon/admin-plugin/Admin.sol";
 import {Multisig} from "@aragon/multisig-plugin/Multisig.sol";
 import {TokenVoting} from "@aragon/token-voting-plugin/TokenVoting.sol";
 import {MajorityVotingBase} from "@aragon/token-voting-plugin/MajorityVotingBase.sol";
+import {IMajorityVoting} from "@aragon/token-voting-plugin/IMajorityVoting.sol";
 import {StagedProposalProcessor} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 
 // ENS Imports
@@ -1427,7 +1428,7 @@ contract ProtocolFactoryTest is AragonTest {
         );
         Multisig multisigPlugin = Multisig(pluginAddress);
 
-        // Allow the test script to create proposals on the plugin
+        // Allow this script to create proposals on the plugin
         Action[] memory actions = new Action[](1);
         actions[0] = Action({
             to: address(targetDao),
@@ -1443,7 +1444,7 @@ contract ProtocolFactoryTest is AragonTest {
         });
         targetDao.execute(bytes32(0), actions, 0);
 
-        // Try to change the DAO URI
+        // Try to change the DAO URI via proposal
         string memory newDaoUri = "https://new-uri";
         assertNotEq(targetDao.daoURI(), newDaoUri, "Execution failed");
         bytes memory executeCalldata = abi.encodeCall(
@@ -1520,11 +1521,7 @@ contract ProtocolFactoryTest is AragonTest {
             operation: IPlugin.Operation.Call
         });
         GovernanceERC20.MintSettings memory mintSettings = GovernanceERC20
-            .MintSettings(new address[](2), new uint256[](2));
-        mintSettings.receivers[0] = alice;
-        mintSettings.amounts[0] = 1 ether;
-        mintSettings.receivers[1] = bob;
-        mintSettings.amounts[1] = 0.1 ether;
+            .MintSettings(new address[](0), new uint256[](0));
 
         bytes memory setupData = abi.encode(
             votingSettings,
@@ -1559,8 +1556,121 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
-        // It should allow its members to approve and execute on the DAO
-        vm.skip(true);
+        DAO targetDao = _createTestDao("dao-with-multisig2", deployment);
+        PluginSetupRef memory pluginSetupRef = PluginSetupRef(
+            PluginRepo.Tag(
+                deploymentParams.corePlugins.tokenVotingPlugin.release,
+                deploymentParams.corePlugins.tokenVotingPlugin.build
+            ),
+            PluginRepo(deployment.tokenVotingPluginRepo)
+        );
+
+        // Setup
+        TokenVotingSetup.TokenSettings memory tokenSettings = TokenVotingSetup
+            .TokenSettings({
+                addr: address(0),
+                name: "Test Token",
+                symbol: "TST"
+            });
+        TokenVoting.VotingSettings memory votingSettings = MajorityVotingBase
+            .VotingSettings({
+                votingMode: MajorityVotingBase.VotingMode.EarlyExecution,
+                supportThreshold: 500_000, // 50%
+                minParticipation: 100_000, // 10%
+                minDuration: 1 days,
+                minProposerVotingPower: 1 // Minimal requirement
+            });
+        IPlugin.TargetConfig memory targetConfig = IPlugin.TargetConfig({
+            target: address(targetDao),
+            operation: IPlugin.Operation.Call
+        });
+
+        GovernanceERC20.MintSettings memory mintSettings = GovernanceERC20
+            .MintSettings(new address[](2), new uint256[](2));
+        mintSettings.receivers[0] = alice;
+        mintSettings.amounts[0] = 1 ether;
+        mintSettings.receivers[1] = bob;
+        mintSettings.amounts[1] = 0.1 ether;
+
+        bytes memory setupData = abi.encode(
+            votingSettings,
+            tokenSettings,
+            mintSettings,
+            targetConfig,
+            100_000, // minApprovals ratio
+            bytes("ipfs://tv-metadata")
+        );
+
+        address pluginAddress = _installPlugin(
+            targetDao,
+            pluginSetupRef,
+            setupData
+        );
+        TokenVoting tokenVotingPlugin = TokenVoting(pluginAddress);
+
+        // Allow this script to create proposals on the plugin
+        Action[] memory actions = new Action[](1);
+        actions[0] = Action({
+            to: address(targetDao),
+            value: 0,
+            data: abi.encodeCall(
+                PermissionManager.grant,
+                (
+                    pluginAddress,
+                    address(this),
+                    tokenVotingPlugin.CREATE_PROPOSAL_PERMISSION_ID()
+                )
+            )
+        });
+        targetDao.execute(bytes32(0), actions, 0);
+
+        // Try to change the DAO URI via proposal
+        string memory newDaoUri = "https://another-uri";
+        assertNotEq(targetDao.daoURI(), newDaoUri, "Execution failed");
+        bytes memory executeCalldata = abi.encodeCall(
+            DAO.setDaoURI,
+            (newDaoUri)
+        );
+
+        actions[0] = Action({
+            to: address(targetDao),
+            value: 0,
+            data: executeCalldata
+        });
+
+        // Create proposal
+        vm.roll(block.number + 1);
+        uint256 proposalId = tokenVotingPlugin.createProposal(
+            "ipfs://proposal-meta",
+            actions,
+            0,
+            uint64(block.timestamp + 86400),
+            bytes("")
+        );
+
+        // Approve (Alice)
+        vm.prank(alice);
+        tokenVotingPlugin.vote(
+            proposalId,
+            IMajorityVoting.VoteOption.Yes,
+            false
+        );
+
+        // Approve (Bob)
+        vm.prank(bob);
+        tokenVotingPlugin.vote(
+            proposalId,
+            IMajorityVoting.VoteOption.Yes,
+            false
+        );
+
+        // Execute (Carol)
+        assertTrue(tokenVotingPlugin.canExecute(proposalId));
+        vm.prank(carol);
+        tokenVotingPlugin.execute(proposalId);
+
+        // Verify execution
+        assertEq(targetDao.daoURI(), newDaoUri, "Execution failed");
     }
 
     function test_WhenPreparingAnSPPPluginInstallation()
