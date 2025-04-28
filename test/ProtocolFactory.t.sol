@@ -1896,6 +1896,15 @@ contract ProtocolFactoryTest is AragonTest {
         assertFalse(
             managementDao.hasPermission(
                 deployment.managementDao,
+                deployment.pluginSetupProcessor,
+                managementDao.ROOT_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have ROOT_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.managementDao,
                 address(factory),
                 managementDao.ROOT_PERMISSION_ID(),
                 ""
@@ -1999,6 +2008,28 @@ contract ProtocolFactoryTest is AragonTest {
             "Should have REGISTER_STANDARD_CALLBACK_PERMISSION_ID"
         );
 
+        // PSP
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginSetupProcessor,
+                address(factory),
+                PluginSetupProcessor(deployment.pluginSetupProcessor)
+                    .APPLY_INSTALLATION_PERMISSION_ID(),
+                ""
+            ),
+            "Should have APPLY_INSTALLATION_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginSetupProcessor,
+                address(this), // Deployer
+                PluginSetupProcessor(deployment.pluginSetupProcessor)
+                    .APPLY_INSTALLATION_PERMISSION_ID(),
+                ""
+            ),
+            "Should have APPLY_INSTALLATION_PERMISSION_ID"
+        );
+
         // REGISTRIES
 
         // REGISTER_DAO_PERMISSION_ID
@@ -2044,22 +2075,12 @@ contract ProtocolFactoryTest is AragonTest {
         assertTrue(
             managementDao.hasPermission(
                 deployment.daoRegistry,
-                address(deployment.daoFactory),
-                DAORegistry(deployment.daoRegistry)
-                    .UPGRADE_REGISTRY_PERMISSION_ID(),
-                ""
-            ),
-            "Should have UPGRADE_REGISTRY_PERMISSION_ID"
-        );
-        assertFalse(
-            managementDao.hasPermission(
-                deployment.daoRegistry,
                 deployment.managementDao,
                 DAORegistry(deployment.daoRegistry)
                     .UPGRADE_REGISTRY_PERMISSION_ID(),
                 ""
             ),
-            "Should not have UPGRADE_REGISTRY_PERMISSION_ID"
+            "Should have UPGRADE_REGISTRY_PERMISSION_ID"
         );
         assertFalse(
             managementDao.hasPermission(
@@ -2128,22 +2149,12 @@ contract ProtocolFactoryTest is AragonTest {
         assertTrue(
             managementDao.hasPermission(
                 deployment.pluginRepoRegistry,
-                address(deployment.pluginRepoFactory),
-                PluginRepoRegistry(deployment.pluginRepoRegistry)
-                    .UPGRADE_REGISTRY_PERMISSION_ID(),
-                ""
-            ),
-            "Should have UPGRADE_REGISTRY_PERMISSION_ID"
-        );
-        assertFalse(
-            managementDao.hasPermission(
-                deployment.pluginRepoRegistry,
                 deployment.managementDao,
                 PluginRepoRegistry(deployment.pluginRepoRegistry)
                     .UPGRADE_REGISTRY_PERMISSION_ID(),
                 ""
             ),
-            "Should not have UPGRADE_REGISTRY_PERMISSION_ID"
+            "Should have UPGRADE_REGISTRY_PERMISSION_ID"
         );
         assertFalse(
             managementDao.hasPermission(
@@ -2256,22 +2267,12 @@ contract ProtocolFactoryTest is AragonTest {
         assertTrue(
             managementDao.hasPermission(
                 deployment.daoSubdomainRegistrar,
-                address(deployment.daoRegistry),
-                ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
-                    .UPGRADE_REGISTRAR_PERMISSION_ID(),
-                ""
-            ),
-            "Should have UPGRADE_REGISTRAR_PERMISSION_ID"
-        );
-        assertFalse(
-            managementDao.hasPermission(
-                deployment.daoSubdomainRegistrar,
                 deployment.managementDao,
                 ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
                     .UPGRADE_REGISTRAR_PERMISSION_ID(),
                 ""
             ),
-            "Should not have UPGRADE_REGISTRAR_PERMISSION_ID"
+            "Should have UPGRADE_REGISTRAR_PERMISSION_ID"
         );
         assertFalse(
             managementDao.hasPermission(
@@ -2298,22 +2299,12 @@ contract ProtocolFactoryTest is AragonTest {
         assertTrue(
             managementDao.hasPermission(
                 deployment.pluginSubdomainRegistrar,
-                address(deployment.pluginRepoRegistry),
-                ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
-                    .UPGRADE_REGISTRAR_PERMISSION_ID(),
-                ""
-            ),
-            "Should have UPGRADE_REGISTRAR_PERMISSION_ID"
-        );
-        assertFalse(
-            managementDao.hasPermission(
-                deployment.pluginSubdomainRegistrar,
                 deployment.managementDao,
                 ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
                     .UPGRADE_REGISTRAR_PERMISSION_ID(),
                 ""
             ),
-            "Should not have UPGRADE_REGISTRAR_PERMISSION_ID"
+            "Should have UPGRADE_REGISTRAR_PERMISSION_ID"
         );
         assertFalse(
             managementDao.hasPermission(
@@ -2337,6 +2328,262 @@ contract ProtocolFactoryTest is AragonTest {
         );
 
         // PLUGINS
+
+        // ADMIN
+        // MAINTAINER_PERMISSION_ID
+        assertTrue(
+            PluginRepo(deployment.adminPluginRepo).isGranted(
+                deployment.adminPluginRepo,
+                deployment.managementDao,
+                PluginRepo(deployment.adminPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should have MAINTAINER_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.adminPluginRepo).isGranted(
+                deployment.adminPluginRepo,
+                address(factory),
+                PluginRepo(deployment.adminPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have MAINTAINER_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.adminPluginRepo).isGranted(
+                deployment.adminPluginRepo,
+                address(this),
+                PluginRepo(deployment.adminPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have MAINTAINER_PERMISSION_ID"
+        );
+        // UPGRADE_REPO_PERMISSION_ID
+        assertTrue(
+            PluginRepo(deployment.adminPluginRepo).isGranted(
+                deployment.adminPluginRepo,
+                deployment.managementDao,
+                PluginRepo(deployment.adminPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have UPGRADE_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.adminPluginRepo).isGranted(
+                deployment.adminPluginRepo,
+                address(factory),
+                PluginRepo(deployment.adminPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.adminPluginRepo).isGranted(
+                deployment.adminPluginRepo,
+                address(this),
+                PluginRepo(deployment.adminPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REPO_PERMISSION_ID"
+        );
+
+        // MULTISIG
+        // MAINTAINER_PERMISSION_ID
+        assertTrue(
+            PluginRepo(deployment.multisigPluginRepo).isGranted(
+                deployment.multisigPluginRepo,
+                deployment.managementDao,
+                PluginRepo(deployment.multisigPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should have MAINTAINER_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.multisigPluginRepo).isGranted(
+                deployment.multisigPluginRepo,
+                address(factory),
+                PluginRepo(deployment.multisigPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have MAINTAINER_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.multisigPluginRepo).isGranted(
+                deployment.multisigPluginRepo,
+                address(this),
+                PluginRepo(deployment.multisigPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have MAINTAINER_PERMISSION_ID"
+        );
+        // UPGRADE_REPO_PERMISSION_ID
+        assertTrue(
+            PluginRepo(deployment.multisigPluginRepo).isGranted(
+                deployment.multisigPluginRepo,
+                deployment.managementDao,
+                PluginRepo(deployment.multisigPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have UPGRADE_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.multisigPluginRepo).isGranted(
+                deployment.multisigPluginRepo,
+                address(factory),
+                PluginRepo(deployment.multisigPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.multisigPluginRepo).isGranted(
+                deployment.multisigPluginRepo,
+                address(this),
+                PluginRepo(deployment.multisigPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REPO_PERMISSION_ID"
+        );
+
+        // TOKEN VOTING
+        // MAINTAINER_PERMISSION_ID
+        assertTrue(
+            PluginRepo(deployment.tokenVotingPluginRepo).isGranted(
+                deployment.tokenVotingPluginRepo,
+                deployment.managementDao,
+                PluginRepo(deployment.tokenVotingPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should have MAINTAINER_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.tokenVotingPluginRepo).isGranted(
+                deployment.tokenVotingPluginRepo,
+                address(factory),
+                PluginRepo(deployment.tokenVotingPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have MAINTAINER_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.tokenVotingPluginRepo).isGranted(
+                deployment.tokenVotingPluginRepo,
+                address(this),
+                PluginRepo(deployment.tokenVotingPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have MAINTAINER_PERMISSION_ID"
+        );
+        // UPGRADE_REPO_PERMISSION_ID
+        assertTrue(
+            PluginRepo(deployment.tokenVotingPluginRepo).isGranted(
+                deployment.tokenVotingPluginRepo,
+                deployment.managementDao,
+                PluginRepo(deployment.tokenVotingPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have UPGRADE_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.tokenVotingPluginRepo).isGranted(
+                deployment.tokenVotingPluginRepo,
+                address(factory),
+                PluginRepo(deployment.tokenVotingPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.tokenVotingPluginRepo).isGranted(
+                deployment.tokenVotingPluginRepo,
+                address(this),
+                PluginRepo(deployment.tokenVotingPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REPO_PERMISSION_ID"
+        );
+
+        // SPP
+        // MAINTAINER_PERMISSION_ID
+        assertTrue(
+            PluginRepo(deployment.stagedProposalProcessorPluginRepo).isGranted(
+                deployment.stagedProposalProcessorPluginRepo,
+                deployment.managementDao,
+                PluginRepo(deployment.stagedProposalProcessorPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should have MAINTAINER_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.stagedProposalProcessorPluginRepo).isGranted(
+                deployment.stagedProposalProcessorPluginRepo,
+                address(factory),
+                PluginRepo(deployment.stagedProposalProcessorPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have MAINTAINER_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.stagedProposalProcessorPluginRepo).isGranted(
+                deployment.stagedProposalProcessorPluginRepo,
+                address(this),
+                PluginRepo(deployment.stagedProposalProcessorPluginRepo)
+                    .MAINTAINER_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have MAINTAINER_PERMISSION_ID"
+        );
+        // UPGRADE_REPO_PERMISSION_ID
+        assertTrue(
+            PluginRepo(deployment.stagedProposalProcessorPluginRepo).isGranted(
+                deployment.stagedProposalProcessorPluginRepo,
+                deployment.managementDao,
+                PluginRepo(deployment.stagedProposalProcessorPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have UPGRADE_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.stagedProposalProcessorPluginRepo).isGranted(
+                deployment.stagedProposalProcessorPluginRepo,
+                address(factory),
+                PluginRepo(deployment.stagedProposalProcessorPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            PluginRepo(deployment.stagedProposalProcessorPluginRepo).isGranted(
+                deployment.stagedProposalProcessorPluginRepo,
+                address(this),
+                PluginRepo(deployment.stagedProposalProcessorPluginRepo)
+                    .UPGRADE_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have UPGRADE_REPO_PERMISSION_ID"
+        );
     }
 
     // Helpers
