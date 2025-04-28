@@ -12,6 +12,7 @@ import {DummySetup} from "./helpers/DummySetup.sol";
 import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
 import {DAO, Action} from "@aragon/osx/core/dao/DAO.sol";
 import {PermissionLib} from "@aragon/osx-commons-contracts/src/permission/PermissionLib.sol";
+import {PermissionManager} from "@aragon/osx/core/permission/PermissionManager.sol";
 import {DAOFactory} from "@aragon/osx/framework/dao/DAOFactory.sol";
 import {DAORegistry} from "@aragon/osx/framework/dao/DAORegistry.sol";
 import {PluginRepoFactory} from "@aragon/osx/framework/plugin/repo/PluginRepoFactory.sol";
@@ -96,6 +97,8 @@ contract ProtocolFactoryTest is AragonTest {
                 ".eth"
             )
         );
+
+        vm.label(address(this), "TestRunner");
     }
 
     function test_WhenDeployingTheProtocolFactory() external {
@@ -1241,7 +1244,7 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
-        IDAO targetDao = _createTestDao("dao-with-admin-plugin", deployment);
+        DAO targetDao = _createTestDao("dao-with-admin-plugin", deployment);
         PluginSetupProcessor psp = PluginSetupProcessor(
             deployment.pluginSetupProcessor
         );
@@ -1283,8 +1286,58 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
+        DAO targetDao = _createTestDao("dao-with-admin-plugin2", deployment);
+        PluginSetupRef memory pluginSetupRef = PluginSetupRef(
+            PluginRepo.Tag(
+                deploymentParams.corePlugins.adminPlugin.release,
+                deploymentParams.corePlugins.adminPlugin.build
+            ),
+            PluginRepo(deployment.adminPluginRepo)
+        );
+
+        // Custom prepareInstallation params
+        address initialAdmin = alice; // Let Alice be the admin
+        IPlugin.TargetConfig memory targetConfig = IPlugin.TargetConfig({
+            target: address(targetDao),
+            operation: IPlugin.Operation.Call
+        });
+        bytes memory setupData = abi.encode(initialAdmin, targetConfig); // Initial admin and target
+
+        address pluginAddress = _installPlugin(
+            targetDao,
+            pluginSetupRef,
+            setupData
+        );
+
         // It should allow the admin to execute on the DAO
-        vm.skip(true);
+        Admin adminPlugin = Admin(pluginAddress);
+
+        string memory newDaoUri = "https://new-uri";
+        assertNotEq(targetDao.daoURI(), newDaoUri, "Execution failed");
+        bytes memory executeCalldata = abi.encodeCall(
+            DAO.setDaoURI,
+            (newDaoUri)
+        );
+
+        Action[] memory actions = new Action[](1);
+        actions[0] = Action({
+            to: address(targetDao),
+            value: 0,
+            data: executeCalldata
+        });
+
+        // Immediately executed
+        vm.prank(alice);
+        adminPlugin.createProposal(
+            "ipfs://proposal-meta",
+            actions,
+            0,
+            0,
+            bytes("")
+        );
+
+        // Verify execution
+        assertEq(targetDao.daoURI(), newDaoUri, "Execution failed");
     }
 
     function test_WhenPreparingAMultisigPluginInstallation()
@@ -1399,17 +1452,33 @@ contract ProtocolFactoryTest is AragonTest {
             );
         pluginAddress = _pluginAddress; // Store the result
 
-        // Grant permissions for apply
-        _targetDao.grant(
-            address(_targetDao),
-            address(psp),
-            _targetDao.ROOT_PERMISSION_ID()
-        );
-        _targetDao.grant(
-            address(psp),
-            address(this), // Test contract applies
-            psp.APPLY_INSTALLATION_PERMISSION_ID()
-        );
+        // Grant temporary permissions for applying
+        Action[] memory actions = new Action[](2);
+        actions[0] = Action({
+            to: address(_targetDao),
+            value: 0,
+            data: abi.encodeCall(
+                PermissionManager.grant,
+                (
+                    address(_targetDao),
+                    address(psp),
+                    _targetDao.ROOT_PERMISSION_ID()
+                )
+            )
+        });
+        actions[1] = Action({
+            to: address(_targetDao),
+            value: 0,
+            data: abi.encodeCall(
+                PermissionManager.grant,
+                (
+                    address(psp),
+                    address(this), // Test contract applies
+                    psp.APPLY_INSTALLATION_PERMISSION_ID()
+                )
+            )
+        });
+        _targetDao.execute(bytes32(0), actions, 0);
 
         // Apply
         psp.applyInstallation(
@@ -1422,16 +1491,31 @@ contract ProtocolFactoryTest is AragonTest {
             )
         );
 
-        // Revoke temporary permissions (optional but good practice)
-        _targetDao.revoke(
-            address(_targetDao),
-            address(psp),
-            _targetDao.ROOT_PERMISSION_ID()
-        );
-        _targetDao.revoke(
-            address(psp),
-            address(this),
-            psp.APPLY_INSTALLATION_PERMISSION_ID()
-        );
+        // Revoke the temporary permissions
+        actions[0] = Action({
+            to: address(_targetDao),
+            value: 0,
+            data: abi.encodeCall(
+                PermissionManager.revoke,
+                (
+                    address(_targetDao),
+                    address(psp),
+                    _targetDao.ROOT_PERMISSION_ID()
+                )
+            )
+        });
+        actions[1] = Action({
+            to: address(_targetDao),
+            value: 0,
+            data: abi.encodeCall(
+                PermissionManager.revoke,
+                (
+                    address(psp),
+                    address(this), // Test contract applies
+                    psp.APPLY_INSTALLATION_PERMISSION_ID()
+                )
+            )
+        });
+        _targetDao.execute(bytes32(0), actions, 0);
     }
 }
