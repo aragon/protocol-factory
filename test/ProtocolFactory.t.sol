@@ -23,19 +23,20 @@ import {IPluginSetup} from "@aragon/osx-commons-contracts/src/plugin/setup/IPlug
 import {IPlugin} from "@aragon/osx-commons-contracts/src/plugin/IPlugin.sol";
 import {ENSSubdomainRegistrar} from "@aragon/osx/framework/utils/ens/ENSSubdomainRegistrar.sol";
 
+// ENS Imports
+import {ENS} from "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
+import {PublicResolver} from "@ensdomains/ens-contracts/contracts/resolvers/PublicResolver.sol";
+import {ENSHelper} from "../src/helpers/ENSHelper.sol";
+
+// Plugins
 import {Admin} from "@aragon/admin-plugin/Admin.sol";
 import {Multisig} from "@aragon/multisig-plugin/Multisig.sol";
 import {TokenVoting} from "@aragon/token-voting-plugin/TokenVoting.sol";
 import {MajorityVotingBase} from "@aragon/token-voting-plugin/MajorityVotingBase.sol";
 import {IMajorityVoting} from "@aragon/token-voting-plugin/IMajorityVoting.sol";
 import {StagedProposalProcessor} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
+import {RuledCondition} from "@aragon/osx-commons-contracts/src/permission/condition/extensions/RuledCondition.sol";
 
-// ENS Imports
-import {ENS} from "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
-import {PublicResolver} from "@ensdomains/ens-contracts/contracts/resolvers/PublicResolver.sol";
-import {ENSHelper} from "../src/helpers/ENSHelper.sol";
-
-// Plugin Setups
 import {AdminSetup} from "@aragon/admin-plugin/AdminSetup.sol";
 import {MultisigSetup} from "@aragon/multisig-plugin/MultisigSetup.sol";
 import {TokenVotingSetup} from "@aragon/token-voting-plugin/TokenVotingSetup.sol";
@@ -1556,7 +1557,7 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
-        DAO targetDao = _createTestDao("dao-with-multisig2", deployment);
+        DAO targetDao = _createTestDao("dao-with-token-voting2", deployment);
         PluginSetupRef memory pluginSetupRef = PluginSetupRef(
             PluginRepo.Tag(
                 deploymentParams.corePlugins.tokenVotingPlugin.release,
@@ -1677,8 +1678,72 @@ contract ProtocolFactoryTest is AragonTest {
         external
         givenAProtocolDeployment
     {
+        DAO targetDao = _createTestDao("spptestdao", deployment);
+        PluginSetupProcessor psp = PluginSetupProcessor(
+            deployment.pluginSetupProcessor
+        );
+
+        // SPP setup
+        PluginSetupRef memory pluginSetupRef = PluginSetupRef(
+            PluginRepo.Tag(
+                deploymentParams
+                    .corePlugins
+                    .stagedProposalProcessorPlugin
+                    .release,
+                deploymentParams.corePlugins.stagedProposalProcessorPlugin.build
+            ),
+            PluginRepo(deployment.stagedProposalProcessorPluginRepo)
+        );
+        StagedProposalProcessor.Body[]
+            memory bodies = new StagedProposalProcessor.Body[](1);
+        bodies[0] = StagedProposalProcessor.Body({
+            addr: address(this),
+            isManual: true,
+            tryAdvance: true,
+            resultType: StagedProposalProcessor.ResultType.Approval
+        });
+
+        StagedProposalProcessor.Stage[]
+            memory stages = new StagedProposalProcessor.Stage[](1);
+        stages[0] = StagedProposalProcessor.Stage({
+            bodies: bodies,
+            maxAdvance: 1000, // uint64
+            minAdvance: 0, // uint64
+            voteDuration: 0, // uint64
+            approvalThreshold: 1,
+            vetoThreshold: 1,
+            cancelable: false,
+            editable: false
+        });
+        IPlugin.TargetConfig memory targetConfig = IPlugin.TargetConfig({
+            target: address(targetDao),
+            operation: IPlugin.Operation.Call
+        });
+        bytes memory setupData = abi.encode(
+            bytes("ipfs://spp-metadata"),
+            stages,
+            new RuledCondition.Rule[](0),
+            targetConfig
+        );
+
         // It should complete normally
-        vm.skip(true);
+        (
+            address pluginAddress,
+            IPluginSetup.PreparedSetupData memory preparedSetupData
+        ) = psp.prepareInstallation(
+                address(targetDao),
+                PluginSetupProcessor.PrepareInstallationParams(
+                    pluginSetupRef,
+                    setupData
+                )
+            );
+        assertNotEq(pluginAddress, address(0));
+        assertTrue(pluginAddress.code.length > 0, "No code at plugin address");
+        assertEq(
+            preparedSetupData.permissions.length,
+            9,
+            "Wrong multisig permissions"
+        );
     }
 
     function test_WhenApplyingAnSPPPluginInstallation()
