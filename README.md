@@ -109,10 +109,8 @@ The simplest example:
 // Adjust the path according to your remappings.txt file
 import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/helpers/ProtocolFactoryBuilder.sol";
 
-ProtocolFactoryBuilder builder = new ProtocolFactoryBuilder();
-
 // Using the default parameters
-ProtocolFactory factory = builder.build();
+ProtocolFactory factory = new ProtocolFactoryBuilder().build();
 factory.deployOnce();
 
 // Get the deployed addresses
