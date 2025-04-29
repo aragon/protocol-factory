@@ -31,7 +31,7 @@ Testing lifecycle:
 Deployment targets:
 
 - make predeploy        Simulate a protocol deployment
-- make deploy           Deploy the protocol and verify the source code
+- make deploy           Deploy the protocol, verify the source code and write to ./artifacts
 
 - make refund           Refund the remaining balance left on the deployment account
 ```
@@ -54,11 +54,7 @@ Check the available make targets to simulate and deploy the smart contracts:
 
 ### Deployment Checklist
 
-- [ ] I have cloned the official repository on my computer and I have checked out the corresponding branch
-- [ ] I have copied `.env.example` into `.env`
-- [ ] The `.env` file contains the correct parameters for the deployment
-  - [ ] I have created a brand new burner wallet with `cast wallet new` and copied the private key to `DEPLOYMENT_PRIVATE_KEY` within `.env`
-  - [ ] I have reviewed the target network and RPC URL
+- [ ] I have cloned the official repository on my computer and I have checked out the `main` branch
 - [ ] I am using the latest official docker engine, running a Debian Linux (stable) image
   - [ ] I have run `docker run --rm -it -v .:/deployment debian:bookworm-slim`
   - [ ] I have run `apt update && apt install -y make curl git vim neovim bc`
@@ -66,23 +62,25 @@ Check the available make targets to simulate and deploy the smart contracts:
   - [ ] I have run `source /root/.bashrc && foundryup`
   - [ ] I have run `cd /deployment`
   - [ ] I have run `make init`
+- [ ] The `.env` file contains the correct parameters for the deployment
+  - [ ] I have created a brand new burner wallet with `cast wallet new` and copied the private key to `DEPLOYMENT_PRIVATE_KEY` within `.env`
+  - [ ] I have set the correct `RPC_URL` for the network
+  - [ ] I have set `ETHERSCAN_API_KEY` (if relevant to the target network)
   - [ ] I have printed the contents of `.env` on the screen
+  - [ ] I am the only person of the ceremony that will operate the deployment wallet
 - [ ] I am opening an editor on the `/deployment` folder, within the Docker container
 - [ ] All the tests run clean (`make test`)
-- **Target production network**
-- [ ] My deployment wallet is a newly created account, ready for safe production deploys.
 - My computer:
   - [ ] Is running in a safe location and using a trusted network
   - [ ] It exposes no services or ports
   - [ ] The wifi or wired network in use does not expose any ports to a WAN
-- [ ] I have previewed my deploy without any errors
-  - `make predeploy`
+- [ ] I have run `make predeploy` and the simulation completes with no errors
 - [ ] The deployment wallet has sufficient native token for gas
-  - At least, 15% more than the estimated simulation
-- [ ] `make test` still run clean
+  - At least, 15% more than the amount estimated during the simulation
+- [ ] `make test` still runs clean
 - [ ] I have run `git status` and it reports no local changes
 - [ ] The current local git branch (`main`) corresponds to its counterpart on `origin`
-  - [ ] I confirm that the rest of members of the ceremony pulled the last commit of my branch and reported the same commit hash as my output for `git log -n 1`
+  - [ ] I confirm that the rest of members of the ceremony pulled the last git commit on `main` and reported the same commit hash as my output for `git log -n 1`
 - [ ] I have initiated the production deployment with `make deploy`
 
 ### Post deployment checklist
@@ -90,10 +88,14 @@ Check the available make targets to simulate and deploy the smart contracts:
 - [ ] The deployment process completed with no errors
 - [ ] The factory contract was deployed by the deployment address
 - [ ] All the project's smart contracts are correctly verified on the reference block explorer of the target network.
-  -  [ ] This also includes contracts that aren't explicitly deployed (deployed on demand)
-- [ ] The output of the latest `deployment-*.log` file corresponds to the console output
+- [ ] The output of the latest `logs/deployment-<network>.log` file corresponds to the console output
+- [ ] A file called `artifacts/addresses.json` has been created, and the addresses match those logged to the screen
+- [ ] I have uploaded these two files to a shared location
+    - [ ] The rest of members confirm that the vlaues are correct
 - [ ] I have transferred the remaining funds of the deployment wallet to the address that originally funded it
   - `make refund`
+
+This concludes the deployment ceremony.
 
 ## Using the Factory for local tests
 

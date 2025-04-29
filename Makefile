@@ -157,7 +157,7 @@ predeploy: ## Simulate a protocol deployment
 		$(VERBOSITY)
 
 .PHONY: deploy
-deploy: test ## Deploy the protocol and verify the source code
+deploy: test ## Deploy the protocol, verify the source code and write to ./artifacts
 	@echo "Starting the deployment"
 	@mkdir -p $(LOGS_FOLDER) $(ARTIFACTS_FOLDER)
 	forge script $(DEPLOY_SCRIPT) \
