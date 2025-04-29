@@ -41,11 +41,7 @@ Run `make init`:
 - It runs a first compilation of the project
 - It copies `.env.example` into `.env`
 
-Next, customize the values of `.env` and optionally `.env.test`.
-
-### Understanding `.env.example`
-
-The env.example file contains descriptions for all the initial settings. You don't need all of these right away but should review prior to fork tests and deployments
+Next, set the values of `.env` according to your environment.
 
 ## Deployment
 
@@ -99,7 +95,173 @@ Check the available make targets to simulate and deploy the smart contracts:
 - [ ] I have transferred the remaining funds of the deployment wallet to the address that originally funded it
   - `make refund`
 
-## Troubleshooting (CLI)
+## Using the Factory for local tests
+
+If you are building an OSx plugin and need a fresh OSx deployment on your test suite, your best option is by using the `ProtocolFactoryBuilder` with Foundry.
+
+### Foundry
+
+The simplest example:
+
+```solidity
+// Adjust the path according to your remappings.txt file
+import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/helpers/ProtocolFactoryBuilder.sol";
+
+ProtocolFactoryBuilder builder = new ProtocolFactoryBuilder();
+
+// Using the default parameters
+ProtocolFactory factory = builder.build();
+factory.deployOnce();
+
+// Get the deployed addresses
+ProtocolFactory.Deployment memory deployment = factory.getDeployment();
+console.log("DaoFactory", deployment.daoFactory);
+```
+
+If you need to override the default parameters:
+
+```solidity
+// Adjust the path according to your remappings.txt file
+import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/helpers/ProtocolFactoryBuilder.sol";
+
+ProtocolFactoryBuilder builder = new ProtocolFactoryBuilder();
+
+// Using custom parameters
+ProtocolFactory factory = builder
+    .withAdminPlugin(
+        1, // plugin release
+        2, // plugin build
+        "ipfs://release-metadata-uri",
+        "ipfs://build-metadata-uri",
+        "admin" // admin.plugin.dao.eth (subdomain)
+    )
+    // .withMultisigPlugin(...)
+    // .withTokenVotingPlugin(...)
+    // .withStagedProposalProcessorPlugin(...)
+    .withDaoRootDomain("dao") // dao.eth
+    .withManagementDaoSubdomain("mgmt") // mgmt.dao.eth
+    .withPluginSubdomain("plugin") // plugin.dao.eth
+    .withManagementDaoMetadataUri("ipfs://new-metadata-uri")
+    .withManagementDaoMembers(new address[](3))
+    .withManagementDaoMinApprovals(2)
+    .build();
+
+factory.deployOnce();
+
+// Get the deployed addresses
+ProtocolFactory.Deployment memory deployment = factory.getDeployment();
+console.log("DaoFactory", deployment.daoFactory);
+```
+
+The ProtocolFactoryBuilder needs Foundry in order to work, as it makes use of the Std cheat codes.
+
+### Testing with other Solidity frameworks
+
+Due to the code size limitations, the ProtocolFactory needs to split things into two steps:
+- The raw deployment of the (stateless) implementations
+- The orchestration of the final protocol contracts (stateful)
+
+The raw deployment is offloaded to [Deploy.s.sol](./script/Deploy.s.sol) and to the following helper factories:
+- DAOHelper
+- ENSHelper
+- PluginRepoHelper
+- PSPHelper
+
+To test locally, you need to replicate the logic of [Deploy.s.sol](./script/Deploy.s.sol), and pass both the deployment parameters as well as the helper factory addresses to the constructor.
+
+```solidity
+// Implementations
+DAO daoBase = new DAO();
+DAORegistry daoRegistryBase = new DAORegistry();
+PluginRepoRegistry pluginRepoRegistryBase = new PluginRepoRegistry();
+ENSSubdomainRegistrar ensSubdomainRegistrarBase = new ENSSubdomainRegistrar();
+
+PlaceholderSetup placeholderSetup = new PlaceholderSetup();
+GlobalExecutor globalExecutor = new GlobalExecutor();
+
+DAOHelper daoHelper = new DAOHelper();
+PluginRepoHelper pluginRepoHelper = new PluginRepoHelper();
+PSPHelper pspHelper = new PSPHelper();
+ENSHelper ensHelper = new ENSHelper();
+
+AdminSetup adminSetup = new AdminSetup();
+MultisigSetup multisigSetup = new MultisigSetup();
+TokenVotingSetup tokenVotingSetup = new TokenVotingSetup(
+    new GovernanceERC20(
+        IDAO(address(0)), "", "",
+        GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
+    ),
+    new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
+);
+StagedProposalProcessorSetup stagedProposalProcessorSetup = new StagedProposalProcessorSetup();
+
+// Parameters
+ProtocolFactory.DeploymentParameters memory params = ProtocolFactory.DeploymentParameters({
+    osxImplementations: ProtocolFactory.OSxImplementations({
+        daoBase: address(daoBase),
+        daoRegistryBase: address(daoRegistryBase),
+        pluginRepoRegistryBase: address(pluginRepoRegistryBase),
+        placeholderSetup: address(placeholderSetup),
+        ensSubdomainRegistrarBase: address(ensSubdomainRegistrarBase),
+        globalExecutor: address(globalExecutor)
+    }),
+    helperFactories: ProtocolFactory.HelperFactories({
+        daoHelper: daoHelper,
+        pluginRepoHelper: pluginRepoHelper,
+        pspHelper: pspHelper,
+        ensHelper: ensHelper
+    }),
+    ensParameters: ProtocolFactory.EnsParameters({
+        daoRootDomain: daoRootDomain,
+        managementDaoSubdomain: managementDaoSubdomain,
+        pluginSubdomain: pluginSubdomain
+    }),
+    corePlugins: ProtocolFactory.CorePlugins({
+        adminPlugin: ProtocolFactory.CorePlugin({
+            pluginSetup: adminSetup,
+            release: 1,
+            build: 2,
+            releaseMetadataUri: releaseMetadataUri,
+            buildMetadataUri: buildMetadataUri,
+            subdomain: subdomain
+        }),
+        multisigPlugin: ProtocolFactory.CorePlugin({
+            pluginSetup: multisigSetup,
+            release: 1,
+            build: 3,
+            releaseMetadataUri: releaseMetadataUri,
+            buildMetadataUri: buildMetadataUri,
+            subdomain: subdomain
+        }),
+        tokenVotingPlugin: ProtocolFactory.CorePlugin({
+            pluginSetup: tokenVotingSetup,
+            release: 1,
+            build: 3,
+            releaseMetadataUri: releaseMetadataUri,
+            buildMetadataUri: buildMetadataUri,
+            subdomain: subdomain
+        }),
+        stagedProposalProcessorPlugin: ProtocolFactory.CorePlugin({
+            pluginSetup: stagedProposalProcessorSetup,
+            release: 1,
+            build: 1,
+            releaseMetadataUri: releaseMetadataUri,
+            buildMetadataUri: buildMetadataUri,
+            subdomain: subdomain
+        })
+    }),
+    managementDao: ProtocolFactory.ManagementDaoParameters({
+        metadataUri: metadataUri,
+        members: members,
+        minApprovals: minApprovals
+    })
+});
+
+ProtocolFactory factory = new ProtocolFactory(params);
+factory.deployOnce();
+```
+
+## Deployment troubleshooting (CLI)
 
 If you get the error Failed to get EIP-1559 fees, add `--legacy` to the command:
 
@@ -115,9 +277,22 @@ forge script --chain "$NETWORK" script/DeployGauges.s.sol:Deploy --rpc-url "$RPC
 
 ## Testing
 
+Using make:
+
+```
+Testing lifecycle:
+
+- make test             Run unit tests, locally
+- make test-coverage    Generate an HTML coverage report under ./report
+```
+
+Run `make test` or `forge test -vvv` to check the logic's accordance to the specs.
+
 See the [TEST_TREE.md](./TEST_TREE.md) file for a visual summary of the implemented tests.
 
-Tests can be described using yaml files. `make` will transform them into solidity test files using [bulloak](https://github.com/alexfertel/bulloak).
+### Writing tests
+
+Tests are described using yaml files like [ProtocolFactory.t.yaml](./test/ProtocolFactory.t.yaml). `make sync-tests` will transform them into solidity tests using [bulloak](https://github.com/alexfertel/bulloak).
 
 Create a file with `.t.yaml` extension within the `test` folder and describe a hierarchy of test cases:
 
@@ -184,3 +359,10 @@ MyContractTest
 └── When proposal doesn't exist // Testing edge cases here
     └── It should revert
 ```
+
+## Security
+If you believe you've found a security issue, we encourage you to notify us. We welcome working with you to resolve the issue promptly.
+
+Security Contact Email: sirt@aragon.org
+
+Please do not use the issue tracker to report security issues.
