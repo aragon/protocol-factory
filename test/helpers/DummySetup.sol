@@ -8,24 +8,15 @@ import {PluginSetup} from "@aragon/osx-commons-contracts/src/plugin/setup/Plugin
 contract DummySetup is PluginSetup {
     constructor() PluginSetup(address(0)) {}
 
-    function prepareInstallation(
-        address /*_dao*/,
-        bytes calldata /*_data*/
-    )
+    function prepareInstallation(address, /*_dao*/ bytes calldata /*_data*/ )
         external
         pure
-        returns (
-            address /*plugin*/,
-            PreparedSetupData memory /*preparedSetupData*/
-        )
+        returns (address, /*plugin*/ PreparedSetupData memory /*preparedSetupData*/ )
     {}
 
-    function prepareUninstallation(
-        address /*_dao*/,
-        SetupPayload calldata /*_payload*/
-    )
+    function prepareUninstallation(address, /*_dao*/ SetupPayload calldata /*_payload*/ )
         external
         pure
-        returns (PermissionLib.MultiTargetPermission[] memory /*permissions*/)
+        returns (PermissionLib.MultiTargetPermission[] memory /*permissions*/ )
     {}
 }

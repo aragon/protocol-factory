@@ -10,7 +10,11 @@ import {DAORegistry} from "@aragon/osx/framework/dao/DAORegistry.sol";
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
 import {PluginRepoFactory} from "@aragon/osx/framework/plugin/repo/PluginRepoFactory.sol";
 import {PluginRepoRegistry} from "@aragon/osx/framework/plugin/repo/PluginRepoRegistry.sol";
-import {PluginSetupProcessor, PluginSetupRef, hashHelpers} from "@aragon/osx/framework/plugin/setup/PluginSetupProcessor.sol";
+import {
+    PluginSetupProcessor,
+    PluginSetupRef,
+    hashHelpers
+} from "@aragon/osx/framework/plugin/setup/PluginSetupProcessor.sol";
 
 import {IPlugin} from "@aragon/osx-commons-contracts/src/plugin/IPlugin.sol";
 import {IPluginSetup} from "@aragon/osx-commons-contracts/src/plugin/setup/IPluginSetup.sol";
@@ -164,11 +168,7 @@ contract ProtocolFactory {
     }
 
     /// @notice Returns the parameters used by the factory to deploy the protocol
-    function getParameters()
-        external
-        view
-        returns (DeploymentParameters memory)
-    {
+    function getParameters() external view returns (DeploymentParameters memory) {
         return parameters;
     }
 
@@ -208,17 +208,12 @@ contract ProtocolFactory {
         // - SET_TRUSTED_FORWARDER_PERMISSION        [skipped]
         // - SET_METADATA_PERMISSION                 [skipped]
 
-        PermissionLib.SingleTargetPermission[]
-            memory items = new PermissionLib.SingleTargetPermission[](3);
+        PermissionLib.SingleTargetPermission[] memory items = new PermissionLib.SingleTargetPermission[](3);
         items[0] = PermissionLib.SingleTargetPermission(
-            PermissionLib.Operation.Grant,
-            deployment.managementDao,
-            managementDao.ROOT_PERMISSION_ID()
+            PermissionLib.Operation.Grant, deployment.managementDao, managementDao.ROOT_PERMISSION_ID()
         );
         items[1] = PermissionLib.SingleTargetPermission(
-            PermissionLib.Operation.Grant,
-            deployment.managementDao,
-            managementDao.UPGRADE_DAO_PERMISSION_ID()
+            PermissionLib.Operation.Grant, deployment.managementDao, managementDao.UPGRADE_DAO_PERMISSION_ID()
         );
         items[2] = PermissionLib.SingleTargetPermission(
             PermissionLib.Operation.Grant,
@@ -226,17 +221,10 @@ contract ProtocolFactory {
             managementDao.REGISTER_STANDARD_CALLBACK_PERMISSION_ID()
         );
 
-        managementDao.applySingleTargetPermissions(
-            deployment.managementDao,
-            items
-        );
+        managementDao.applySingleTargetPermissions(deployment.managementDao, items);
 
         // Grant the factory execute permission on the Management DAO
-        managementDao.grant(
-            deployment.managementDao,
-            address(this),
-            managementDao.EXECUTE_PERMISSION_ID()
-        );
+        managementDao.grant(deployment.managementDao, address(this), managementDao.EXECUTE_PERMISSION_ID());
     }
 
     function prepareEnsRegistry() internal {
@@ -244,12 +232,10 @@ contract ProtocolFactory {
         bytes32 PLUGIN_DAO_ETH_NODE;
 
         // Set up an ENS environment
-        (
-            deployment.ensRegistry,
-            deployment.publicResolver,
-            DAO_ETH_NODE,
-            PLUGIN_DAO_ETH_NODE
-        ) = parameters.helperFactories.ensHelper.deployStatic(
+        (deployment.ensRegistry, deployment.publicResolver, DAO_ETH_NODE, PLUGIN_DAO_ETH_NODE) = parameters
+            .helperFactories
+            .ensHelper
+            .deployStatic(
             address(deployment.managementDao), // ENSRegistry owner
             bytes(parameters.ensParameters.daoRootDomain),
             bytes(parameters.ensParameters.pluginSubdomain)
@@ -260,11 +246,7 @@ contract ProtocolFactory {
             parameters.osxImplementations.ensSubdomainRegistrarBase,
             abi.encodeCall(
                 ENSSubdomainRegistrar.initialize,
-                (
-                    IDAO(deployment.managementDao),
-                    ENS(deployment.ensRegistry),
-                    DAO_ETH_NODE
-                )
+                (IDAO(deployment.managementDao), ENS(deployment.ensRegistry), DAO_ETH_NODE)
             )
         );
 
@@ -273,11 +255,7 @@ contract ProtocolFactory {
             parameters.osxImplementations.ensSubdomainRegistrarBase,
             abi.encodeCall(
                 ENSSubdomainRegistrar.initialize,
-                (
-                    IDAO(deployment.managementDao),
-                    ENS(deployment.ensRegistry),
-                    PLUGIN_DAO_ETH_NODE
-                )
+                (IDAO(deployment.managementDao), ENS(deployment.ensRegistry), PLUGIN_DAO_ETH_NODE)
             )
         );
 
@@ -288,15 +266,9 @@ contract ProtocolFactory {
 
         Action[] memory actions = new Action[](2);
         actions[0].to = deployment.ensRegistry;
-        actions[0].data = abi.encodeCall(
-            ENS.setApprovalForAll,
-            (deployment.daoSubdomainRegistrar, true)
-        );
+        actions[0].data = abi.encodeCall(ENS.setApprovalForAll, (deployment.daoSubdomainRegistrar, true));
         actions[1].to = deployment.ensRegistry;
-        actions[1].data = abi.encodeCall(
-            ENS.setApprovalForAll,
-            (deployment.pluginSubdomainRegistrar, true)
-        );
+        actions[1].data = abi.encodeCall(ENS.setApprovalForAll, (deployment.pluginSubdomainRegistrar, true));
 
         DAO(payable(deployment.managementDao)).execute(bytes32(0), actions, 0);
     }
@@ -307,10 +279,7 @@ contract ProtocolFactory {
             parameters.osxImplementations.daoRegistryBase,
             abi.encodeCall(
                 DAORegistry.initialize,
-                (
-                    IDAO(deployment.managementDao),
-                    ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
-                )
+                (IDAO(deployment.managementDao), ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar))
             )
         );
 
@@ -319,40 +288,24 @@ contract ProtocolFactory {
             parameters.osxImplementations.pluginRepoRegistryBase,
             abi.encodeCall(
                 PluginRepoRegistry.initialize,
-                (
-                    IDAO(deployment.managementDao),
-                    ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
-                )
+                (IDAO(deployment.managementDao), ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar))
             )
         );
 
         // Static contract deployments
         /// @dev Offloaded to separate factories to avoid hitting code size limits.
 
-        deployment.pluginSetupProcessor = parameters
-            .helperFactories
-            .pspHelper
-            .deployStatic(deployment.pluginRepoRegistry);
-        deployment.daoFactory = parameters
-            .helperFactories
-            .daoHelper
-            .deployFactory(
-                deployment.daoRegistry,
-                deployment.pluginSetupProcessor
-            );
-        deployment.pluginRepoFactory = parameters
-            .helperFactories
-            .pluginRepoHelper
-            .deployFactory(deployment.pluginRepoRegistry);
+        deployment.pluginSetupProcessor =
+            parameters.helperFactories.pspHelper.deployStatic(deployment.pluginRepoRegistry);
+        deployment.daoFactory =
+            parameters.helperFactories.daoHelper.deployFactory(deployment.daoRegistry, deployment.pluginSetupProcessor);
+        deployment.pluginRepoFactory =
+            parameters.helperFactories.pluginRepoHelper.deployFactory(deployment.pluginRepoRegistry);
 
         // Store the plain implementation addresses
 
-        deployment.globalExecutor = parameters
-            .osxImplementations
-            .globalExecutor;
-        deployment.placeholderSetup = parameters
-            .osxImplementations
-            .placeholderSetup;
+        deployment.globalExecutor = parameters.osxImplementations.globalExecutor;
+        deployment.placeholderSetup = parameters.osxImplementations.placeholderSetup;
     }
 
     function preparePermissions() internal {
@@ -364,28 +317,24 @@ contract ProtocolFactory {
         managementDao.grant(
             deployment.daoSubdomainRegistrar,
             deployment.daoRegistry,
-            ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
-                .REGISTER_ENS_SUBDOMAIN_PERMISSION_ID()
+            ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar).REGISTER_ENS_SUBDOMAIN_PERMISSION_ID()
         );
         managementDao.grant(
             deployment.pluginSubdomainRegistrar,
             deployment.pluginRepoRegistry,
-            ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
-                .REGISTER_ENS_SUBDOMAIN_PERMISSION_ID()
+            ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar).REGISTER_ENS_SUBDOMAIN_PERMISSION_ID()
         );
 
         // Allow to perform upgrades
         managementDao.grant(
             deployment.daoSubdomainRegistrar,
             deployment.managementDao,
-            ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar)
-                .UPGRADE_REGISTRAR_PERMISSION_ID()
+            ENSSubdomainRegistrar(deployment.daoSubdomainRegistrar).UPGRADE_REGISTRAR_PERMISSION_ID()
         );
         managementDao.grant(
             deployment.pluginSubdomainRegistrar,
             deployment.managementDao,
-            ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar)
-                .UPGRADE_REGISTRAR_PERMISSION_ID()
+            ENSSubdomainRegistrar(deployment.pluginSubdomainRegistrar).UPGRADE_REGISTRAR_PERMISSION_ID()
         );
 
         // DAORegistry permissions
@@ -409,41 +358,29 @@ contract ProtocolFactory {
         managementDao.grant(
             deployment.pluginRepoRegistry,
             deployment.pluginRepoFactory,
-            PluginRepoRegistry(deployment.pluginRepoRegistry)
-                .REGISTER_PLUGIN_REPO_PERMISSION_ID()
+            PluginRepoRegistry(deployment.pluginRepoRegistry).REGISTER_PLUGIN_REPO_PERMISSION_ID()
         );
         // Upgrade the implementation
         managementDao.grant(
             deployment.pluginRepoRegistry,
             deployment.managementDao,
-            PluginRepoRegistry(deployment.pluginRepoRegistry)
-                .UPGRADE_REGISTRY_PERMISSION_ID()
+            PluginRepoRegistry(deployment.pluginRepoRegistry).UPGRADE_REGISTRY_PERMISSION_ID()
         );
     }
 
     function prepareCorePluginRepos() internal {
-        deployment.adminPluginRepo = preparePluginRepo(
-            parameters.corePlugins.adminPlugin
-        );
-        deployment.multisigPluginRepo = preparePluginRepo(
-            parameters.corePlugins.multisigPlugin
-        );
-        deployment.tokenVotingPluginRepo = preparePluginRepo(
-            parameters.corePlugins.tokenVotingPlugin
-        );
-        deployment.stagedProposalProcessorPluginRepo = preparePluginRepo(
-            parameters.corePlugins.stagedProposalProcessorPlugin
-        );
+        deployment.adminPluginRepo = preparePluginRepo(parameters.corePlugins.adminPlugin);
+        deployment.multisigPluginRepo = preparePluginRepo(parameters.corePlugins.multisigPlugin);
+        deployment.tokenVotingPluginRepo = preparePluginRepo(parameters.corePlugins.tokenVotingPlugin);
+        deployment.stagedProposalProcessorPluginRepo =
+            preparePluginRepo(parameters.corePlugins.stagedProposalProcessorPlugin);
     }
 
-    function preparePluginRepo(
-        CorePlugin memory corePlugin
-    ) internal returns (address pluginRepo) {
+    function preparePluginRepo(CorePlugin memory corePlugin) internal returns (address pluginRepo) {
         // Make it owned by the Management DAO upfront
         pluginRepo = address(
             PluginRepoFactory(deployment.pluginRepoFactory).createPluginRepo(
-                corePlugin.subdomain,
-                deployment.managementDao
+                corePlugin.subdomain, deployment.managementDao
             )
         );
 
@@ -465,11 +402,7 @@ contract ProtocolFactory {
             );
 
             for (uint256 i = 1; i < corePlugin.build; i++) {
-                DAO(payable(deployment.managementDao)).execute(
-                    bytes32(0),
-                    actions,
-                    0
-                );
+                DAO(payable(deployment.managementDao)).execute(bytes32(0), actions, 0);
             }
         }
 
@@ -492,104 +425,71 @@ contract ProtocolFactory {
 
         // Grant temporary permissions for the factory to register the Management DAO
         managementDao.grant(
-            deployment.daoRegistry,
-            address(this),
-            DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID()
+            deployment.daoRegistry, address(this), DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID()
         );
 
         // Register the ManagementDAO on the DaoRegistry
         DAORegistry(deployment.daoRegistry).register(
-            managementDao,
-            address(this),
-            parameters.ensParameters.managementDaoSubdomain
+            managementDao, address(this), parameters.ensParameters.managementDaoSubdomain
         );
 
         // Revoke the temporary permission
         managementDao.revoke(
-            deployment.daoRegistry,
-            address(this),
-            DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID()
+            deployment.daoRegistry, address(this), DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID()
         );
 
         // Management DAO Multisig Plugin
 
         // Check the members length
-        if (
-            parameters.managementDao.members.length <
-            parameters.managementDao.minApprovals
-        ) {
+        if (parameters.managementDao.members.length < parameters.managementDao.minApprovals) {
             revert MemberListIsTooSmall();
         }
 
         // Prepare the installation
         bytes memory setupData = abi.encode(
             parameters.managementDao.members,
-            Multisig.MultisigSettings({
-                onlyListed: true,
-                minApprovals: parameters.managementDao.minApprovals
-            }),
-            IPlugin.TargetConfig({
-                target: deployment.managementDao,
-                operation: IPlugin.Operation.Call
-            }),
+            Multisig.MultisigSettings({onlyListed: true, minApprovals: parameters.managementDao.minApprovals}),
+            IPlugin.TargetConfig({target: deployment.managementDao, operation: IPlugin.Operation.Call}),
             bytes("") // metadata
         );
 
         PluginSetupRef memory pluginSetupRef = PluginSetupRef(
-            PluginRepo.Tag(
-                parameters.corePlugins.multisigPlugin.release,
-                parameters.corePlugins.multisigPlugin.build
-            ),
+            PluginRepo.Tag(parameters.corePlugins.multisigPlugin.release, parameters.corePlugins.multisigPlugin.build),
             PluginRepo(deployment.multisigPluginRepo)
         );
         IPluginSetup.PreparedSetupData memory preparedSetupData;
-        (
-            deployment.managementDaoMultisig,
-            preparedSetupData
-        ) = PluginSetupProcessor(deployment.pluginSetupProcessor)
+        (deployment.managementDaoMultisig, preparedSetupData) = PluginSetupProcessor(deployment.pluginSetupProcessor)
             .prepareInstallation(
-                deployment.managementDao,
-                PluginSetupProcessor.PrepareInstallationParams(
-                    pluginSetupRef,
-                    setupData
-                )
-            );
+            deployment.managementDao, PluginSetupProcessor.PrepareInstallationParams(pluginSetupRef, setupData)
+        );
 
         // Grant temporary permissions to apply the installation
-        managementDao.grant(
-            address(managementDao),
-            deployment.pluginSetupProcessor,
-            managementDao.ROOT_PERMISSION_ID()
-        );
+        managementDao.grant(address(managementDao), deployment.pluginSetupProcessor, managementDao.ROOT_PERMISSION_ID());
         managementDao.grant(
             deployment.pluginSetupProcessor,
             address(this),
-            PluginSetupProcessor(deployment.pluginSetupProcessor)
-                .APPLY_INSTALLATION_PERMISSION_ID()
+            PluginSetupProcessor(deployment.pluginSetupProcessor).APPLY_INSTALLATION_PERMISSION_ID()
         );
 
         // Install the plugin
         PluginSetupProcessor(deployment.pluginSetupProcessor).applyInstallation(
-                address(managementDao),
-                PluginSetupProcessor.ApplyInstallationParams(
-                    pluginSetupRef,
-                    deployment.managementDaoMultisig,
-                    preparedSetupData.permissions,
-                    hashHelpers(preparedSetupData.helpers)
-                )
-            );
+            address(managementDao),
+            PluginSetupProcessor.ApplyInstallationParams(
+                pluginSetupRef,
+                deployment.managementDaoMultisig,
+                preparedSetupData.permissions,
+                hashHelpers(preparedSetupData.helpers)
+            )
+        );
 
         // Remove the temporary permissions
         managementDao.revoke(
-            address(managementDao),
-            deployment.pluginSetupProcessor,
-            managementDao.ROOT_PERMISSION_ID()
+            address(managementDao), deployment.pluginSetupProcessor, managementDao.ROOT_PERMISSION_ID()
         );
         managementDao.revoke(
             deployment.pluginSetupProcessor,
             address(this),
-            PluginSetupProcessor(deployment.pluginSetupProcessor)
-                .APPLY_INSTALLATION_PERMISSION_ID()
+            PluginSetupProcessor(deployment.pluginSetupProcessor).APPLY_INSTALLATION_PERMISSION_ID()
         );
     }
 
@@ -608,10 +508,7 @@ contract ProtocolFactory {
         );
     }
 
-    function createProxyAndCall(
-        address _logic,
-        bytes memory _data
-    ) internal returns (address) {
+    function createProxyAndCall(address _logic, bytes memory _data) internal returns (address) {
         return address(new ERC1967Proxy(_logic, _data));
     }
 }

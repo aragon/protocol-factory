@@ -7,11 +7,7 @@ import {PluginSetupProcessor} from "@aragon/osx/framework/plugin/setup/PluginSet
 
 /// @notice This contract offloads the static deployment of the PluginSetupProcessor
 contract PSPHelper is IPSPHelper {
-    function deployStatic(
-        address pluginRepoRegistry
-    ) external returns (address pluginSetupProcessor) {
-        pluginSetupProcessor = address(
-            new PluginSetupProcessor(PluginRepoRegistry(pluginRepoRegistry))
-        );
+    function deployStatic(address pluginRepoRegistry) external returns (address pluginSetupProcessor) {
+        pluginSetupProcessor = address(new PluginSetupProcessor(PluginRepoRegistry(pluginRepoRegistry)));
     }
 }

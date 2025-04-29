@@ -36,8 +36,7 @@ contract DeployScript is Script {
     string constant DEFAULT_DAO_ENS_DOMAIN = "dao";
     string constant DEFAULT_MANAGEMENT_DAO_SUBDOMAIN = "management";
     string constant DEFAULT_PLUGIN_ENS_SUBDOMAIN = "plugin";
-    string constant DEFAULT_MANAGEMENT_DAO_MEMBERS_FILE_NAME =
-        "multisig-members.json";
+    string constant DEFAULT_MANAGEMENT_DAO_MEMBERS_FILE_NAME = "multisig-members.json";
 
     DAO daoBase;
     DAORegistry daoRegistryBase;
@@ -107,10 +106,7 @@ contract DeployScript is Script {
         vm.label(address(placeholderSetup), "PlaceholderSetup");
 
         ensSubdomainRegistrarBase = new ENSSubdomainRegistrar();
-        vm.label(
-            address(ensSubdomainRegistrarBase),
-            "ENSSubdomainRegistrar Base"
-        );
+        vm.label(address(ensSubdomainRegistrarBase), "ENSSubdomainRegistrar Base");
 
         globalExecutor = new GlobalExecutor();
         vm.label(address(globalExecutor), "GlobalExecutor");
@@ -146,10 +142,7 @@ contract DeployScript is Script {
     function deployTokenVotingSetup() internal {
         tokenVotingSetup = new TokenVotingSetup(
             new GovernanceERC20(
-                IDAO(address(0)),
-                "",
-                "",
-                GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
+                IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
             ),
             new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
         );
@@ -158,50 +151,29 @@ contract DeployScript is Script {
 
     function deployStagedProposalProcessorSetup() internal {
         stagedProposalProcessorSetup = new StagedProposalProcessorSetup();
-        vm.label(
-            address(stagedProposalProcessorSetup),
-            "StagedProposalProcessorSetup"
-        );
+        vm.label(address(stagedProposalProcessorSetup), "StagedProposalProcessorSetup");
     }
 
-    function readManagementDaoMembers()
-        public
-        view
-        returns (address[] memory result)
-    {
+    function readManagementDaoMembers() public view returns (address[] memory result) {
         // JSON list of members
-        string memory membersFileName = vm.envOr(
-            "MANAGEMENT_DAO_MEMBERS_FILE_NAME",
-            DEFAULT_MANAGEMENT_DAO_MEMBERS_FILE_NAME
-        );
-        string memory path = string.concat(
-            vm.projectRoot(),
-            "/",
-            membersFileName
-        );
+        string memory membersFileName =
+            vm.envOr("MANAGEMENT_DAO_MEMBERS_FILE_NAME", DEFAULT_MANAGEMENT_DAO_MEMBERS_FILE_NAME);
+        string memory path = string.concat(vm.projectRoot(), "/", membersFileName);
         string memory strJson = vm.readFile(path);
 
         bool exists = vm.keyExistsJson(strJson, "$.members");
         if (!exists) {
-            revert(
-                "The file pointed by MANAGEMENT_DAO_MEMBERS_FILE_NAME does not exist"
-            );
+            revert("The file pointed by MANAGEMENT_DAO_MEMBERS_FILE_NAME does not exist");
         }
 
         result = vm.parseJsonAddressArray(strJson, "$.members");
 
         if (result.length == 0) {
-            revert(
-                "The file pointed by MANAGEMENT_DAO_MEMBERS_FILE_NAME needs to contain at least one member"
-            );
+            revert("The file pointed by MANAGEMENT_DAO_MEMBERS_FILE_NAME needs to contain at least one member");
         }
     }
 
-    function getFactoryParams()
-        internal
-        view
-        returns (ProtocolFactory.DeploymentParameters memory params)
-    {
+    function getFactoryParams() internal view returns (ProtocolFactory.DeploymentParameters memory params) {
         params = ProtocolFactory.DeploymentParameters({
             osxImplementations: ProtocolFactory.OSxImplementations({
                 daoBase: address(daoBase),
@@ -218,100 +190,50 @@ contract DeployScript is Script {
                 ensHelper: ensHelper
             }),
             ensParameters: ProtocolFactory.EnsParameters({
-                daoRootDomain: vm.envOr(
-                    "DAO_ENS_DOMAIN",
-                    DEFAULT_DAO_ENS_DOMAIN
-                ),
-                managementDaoSubdomain: vm.envOr(
-                    "MANAGEMENT_DAO_SUBDOMAIN",
-                    DEFAULT_MANAGEMENT_DAO_SUBDOMAIN
-                ),
-                pluginSubdomain: vm.envOr(
-                    "PLUGIN_ENS_SUBDOMAIN",
-                    DEFAULT_PLUGIN_ENS_SUBDOMAIN
-                )
+                daoRootDomain: vm.envOr("DAO_ENS_DOMAIN", DEFAULT_DAO_ENS_DOMAIN),
+                managementDaoSubdomain: vm.envOr("MANAGEMENT_DAO_SUBDOMAIN", DEFAULT_MANAGEMENT_DAO_SUBDOMAIN),
+                pluginSubdomain: vm.envOr("PLUGIN_ENS_SUBDOMAIN", DEFAULT_PLUGIN_ENS_SUBDOMAIN)
             }),
             corePlugins: ProtocolFactory.CorePlugins({
                 adminPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: adminSetup,
                     release: 1,
                     build: 2,
-                    releaseMetadataUri: vm.envOr(
-                        "ADMIN_PLUGIN_RELEASE_METADATA_URI",
-                        string("ipfs://")
-                    ),
-                    buildMetadataUri: vm.envOr(
-                        "ADMIN_PLUGIN_BUILD_METADATA_URI",
-                        string("ipfs://")
-                    ),
-                    subdomain: vm.envOr(
-                        "ADMIN_PLUGIN_SUBDOMAIN",
-                        string("admin")
-                    )
+                    releaseMetadataUri: vm.envOr("ADMIN_PLUGIN_RELEASE_METADATA_URI", string("ipfs://")),
+                    buildMetadataUri: vm.envOr("ADMIN_PLUGIN_BUILD_METADATA_URI", string("ipfs://")),
+                    subdomain: vm.envOr("ADMIN_PLUGIN_SUBDOMAIN", string("admin"))
                 }),
                 multisigPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: multisigSetup,
                     release: 1,
                     build: 3,
-                    releaseMetadataUri: vm.envOr(
-                        "MULTISIG_PLUGIN_RELEASE_METADATA_URI",
-                        string("ipfs://")
-                    ),
-                    buildMetadataUri: vm.envOr(
-                        "MULTISIG_PLUGIN_BUILD_METADATA_URI",
-                        string("ipfs://")
-                    ),
-                    subdomain: vm.envOr(
-                        "MULTISIG_PLUGIN_SUBDOMAIN",
-                        string("multisig")
-                    )
+                    releaseMetadataUri: vm.envOr("MULTISIG_PLUGIN_RELEASE_METADATA_URI", string("ipfs://")),
+                    buildMetadataUri: vm.envOr("MULTISIG_PLUGIN_BUILD_METADATA_URI", string("ipfs://")),
+                    subdomain: vm.envOr("MULTISIG_PLUGIN_SUBDOMAIN", string("multisig"))
                 }),
                 tokenVotingPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: tokenVotingSetup,
                     release: 1,
                     build: 3,
-                    releaseMetadataUri: vm.envOr(
-                        "TOKEN_VOTING_PLUGIN_RELEASE_METADATA_URI",
-                        string("ipfs://")
-                    ),
-                    buildMetadataUri: vm.envOr(
-                        "TOKEN_VOTING_PLUGIN_BUILD_METADATA_URI",
-                        string("ipfs://")
-                    ),
-                    subdomain: vm.envOr(
-                        "TOKEN_VOTING_PLUGIN_SUBDOMAIN",
-                        string("token-voting")
-                    )
+                    releaseMetadataUri: vm.envOr("TOKEN_VOTING_PLUGIN_RELEASE_METADATA_URI", string("ipfs://")),
+                    buildMetadataUri: vm.envOr("TOKEN_VOTING_PLUGIN_BUILD_METADATA_URI", string("ipfs://")),
+                    subdomain: vm.envOr("TOKEN_VOTING_PLUGIN_SUBDOMAIN", string("token-voting"))
                 }),
                 stagedProposalProcessorPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: stagedProposalProcessorSetup,
                     release: 1,
                     build: 1,
-                    releaseMetadataUri: vm.envOr(
-                        "STAGED_PROPOSAL_PROCESSOR_PLUGIN_RELEASE_METADATA_URI",
-                        string("ipfs://")
-                    ),
-                    buildMetadataUri: vm.envOr(
-                        "STAGED_PROPOSAL_PROCESSOR_PLUGIN_BUILD_METADATA_URI",
-                        string("ipfs://")
-                    ),
-                    subdomain: vm.envOr(
-                        "STAGED_PROPOSAL_PROCESSOR_PLUGIN_SUBDOMAIN",
-                        string("spp")
-                    )
+                    releaseMetadataUri: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_RELEASE_METADATA_URI", string("ipfs://")),
+                    buildMetadataUri: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_BUILD_METADATA_URI", string("ipfs://")),
+                    subdomain: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_SUBDOMAIN", string("spp"))
                 })
             }),
             managementDao: ProtocolFactory.ManagementDaoParameters({
                 metadataUri: vm.envOr(
-                    "MANAGEMENT_DAO_METADATA_URI",
-                    string(
-                        "ipfs://bafkreibemfrxeuwfaono6k37vbi66fctcwtioiyctrl4fvqtqmiodt2mle"
-                    )
+                    "MANAGEMENT_DAO_METADATA_URI", string("ipfs://bafkreibemfrxeuwfaono6k37vbi66fctcwtioiyctrl4fvqtqmiodt2mle")
                 ),
                 members: readManagementDaoMembers(),
-                minApprovals: uint8(
-                    vm.envOr("MANAGEMENT_DAO_MIN_APPROVALS", uint256(3))
-                )
+                minApprovals: uint8(vm.envOr("MANAGEMENT_DAO_MIN_APPROVALS", uint256(3)))
             })
         });
     }
@@ -336,10 +258,7 @@ contract DeployScript is Script {
         console.log();
         console.log("Protocol helpers:");
         console.log("- Management DAO", deployment.managementDao);
-        console.log(
-            "- Management DAO multisig",
-            deployment.managementDaoMultisig
-        );
+        console.log("- Management DAO multisig", deployment.managementDaoMultisig);
         address[] memory members = readManagementDaoMembers();
         console.log("- Management DAO members");
         for (uint256 i = 0; i < members.length; i++) {
@@ -350,31 +269,28 @@ contract DeployScript is Script {
         console.log("ENS:");
         console.log("- ENSRegistry", deployment.ensRegistry);
         console.log("- PublicResolver", deployment.publicResolver);
-        console.log(
-            "- ENSSubdomainRegistrar (DAOs)",
-            deployment.daoSubdomainRegistrar
-        );
-        console.log(
-            "- ENSSubdomainRegistrar (plugins)",
-            deployment.pluginSubdomainRegistrar
-        );
+        console.log("- ENSSubdomainRegistrar (DAOs)", deployment.daoSubdomainRegistrar);
+        console.log("- ENSSubdomainRegistrar (plugins)", deployment.pluginSubdomainRegistrar);
 
         console.log();
         console.log("Plugin repositories:");
         console.log("- Admin PluginRepo", deployment.adminPluginRepo);
         console.log("- Multisig PluginRepo", deployment.multisigPluginRepo);
-        console.log(
-            "- TokenVoting PluginRepo",
-            deployment.tokenVotingPluginRepo
-        );
-        console.log(
-            "- SPP PluginRepo",
-            deployment.stagedProposalProcessorPluginRepo
-        );
+        console.log("- TokenVoting PluginRepo", deployment.tokenVotingPluginRepo);
+        console.log("- SPP PluginRepo", deployment.stagedProposalProcessorPluginRepo);
 
         console.log();
         console.log("Other OSx contracts:");
         console.log("- GlobalExecutor", deployment.globalExecutor);
         console.log("- PlaceholderSetup", deployment.placeholderSetup);
+    }
+
+    function writeJson() internal {
+        // using stdJson for string;
+        // string memory json = "json";
+        // json.serialize("a", uint256(123));
+        // string memory semiFinal = json.serialize("b", string("test"));
+        // string memory finalJson = json.serialize("c", semiFinal);
+        // finalJson.write("<some_path>");
     }
 }

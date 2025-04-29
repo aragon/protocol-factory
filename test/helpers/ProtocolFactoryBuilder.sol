@@ -45,94 +45,73 @@ contract ProtocolFactoryBuilder is Test {
 
     AdminSetup ADMIN_SETUP = new AdminSetup();
     MultisigSetup MULTISIG_SETUP = new MultisigSetup();
-    TokenVotingSetup TOKEN_VOTING_SETUP =
-        new TokenVotingSetup(
-            new GovernanceERC20(
-                IDAO(address(0)),
-                "",
-                "",
-                GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
-            ),
-            new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
-        );
+    TokenVotingSetup TOKEN_VOTING_SETUP = new TokenVotingSetup(
+        new GovernanceERC20(IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))),
+        new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
+    );
     StagedProposalProcessorSetup SPP_SETUP = new StagedProposalProcessorSetup();
 
     string daoRootDomain = "dao-test";
     string managementDaoSubdomain = "management-test";
     string pluginSubdomain = "plugin-test";
 
-    ProtocolFactory.CorePlugin adminPlugin =
-        ProtocolFactory.CorePlugin({
-            pluginSetup: new AdminSetup(),
-            release: 1,
-            build: 2,
-            releaseMetadataUri: "admin-release-metadata",
-            buildMetadataUri: "admin-build-metadata",
-            subdomain: "admin-test"
-        });
-    ProtocolFactory.CorePlugin multisigPlugin =
-        ProtocolFactory.CorePlugin({
-            pluginSetup: new AdminSetup(),
-            release: 1,
-            build: 3,
-            releaseMetadataUri: "multisig-release-metadata",
-            buildMetadataUri: "multisig-build-metadata",
-            subdomain: "multisig-test"
-        });
-    ProtocolFactory.CorePlugin tokenVotingPlugin =
-        ProtocolFactory.CorePlugin({
-            pluginSetup: new AdminSetup(),
-            release: 1,
-            build: 3,
-            releaseMetadataUri: "token-voting-release-metadata",
-            buildMetadataUri: "token-voting-build-metadata",
-            subdomain: "token-voting-test"
-        });
-    ProtocolFactory.CorePlugin stagedProposalProcessorPlugin =
-        ProtocolFactory.CorePlugin({
-            pluginSetup: new AdminSetup(),
-            release: 1,
-            build: 1,
-            releaseMetadataUri: "spp-release-metadata",
-            buildMetadataUri: "spp-build-metadata",
-            subdomain: "spp-test"
-        });
+    ProtocolFactory.CorePlugin adminPlugin = ProtocolFactory.CorePlugin({
+        pluginSetup: new AdminSetup(),
+        release: 1,
+        build: 2,
+        releaseMetadataUri: "admin-release-metadata",
+        buildMetadataUri: "admin-build-metadata",
+        subdomain: "admin-test"
+    });
+    ProtocolFactory.CorePlugin multisigPlugin = ProtocolFactory.CorePlugin({
+        pluginSetup: new AdminSetup(),
+        release: 1,
+        build: 3,
+        releaseMetadataUri: "multisig-release-metadata",
+        buildMetadataUri: "multisig-build-metadata",
+        subdomain: "multisig-test"
+    });
+    ProtocolFactory.CorePlugin tokenVotingPlugin = ProtocolFactory.CorePlugin({
+        pluginSetup: new AdminSetup(),
+        release: 1,
+        build: 3,
+        releaseMetadataUri: "token-voting-release-metadata",
+        buildMetadataUri: "token-voting-build-metadata",
+        subdomain: "token-voting-test"
+    });
+    ProtocolFactory.CorePlugin stagedProposalProcessorPlugin = ProtocolFactory.CorePlugin({
+        pluginSetup: new AdminSetup(),
+        release: 1,
+        build: 1,
+        releaseMetadataUri: "spp-release-metadata",
+        buildMetadataUri: "spp-build-metadata",
+        subdomain: "spp-test"
+    });
 
-    ProtocolFactory.ManagementDaoParameters managementDaoParams =
-        ProtocolFactory.ManagementDaoParameters({
-            metadataUri: "ipfs://mgmt-dao-metadata",
-            members: new address[](0),
-            minApprovals: 3
-        });
+    ProtocolFactory.ManagementDaoParameters managementDaoParams = ProtocolFactory.ManagementDaoParameters({
+        metadataUri: "ipfs://mgmt-dao-metadata",
+        members: new address[](0),
+        minApprovals: 3
+    });
 
     // GETTERS
-    function getDeploymentParams()
-        public
-        view
-        returns (ProtocolFactory.DeploymentParameters memory)
-    {
+    function getDeploymentParams() public view returns (ProtocolFactory.DeploymentParameters memory) {
         return deploymentParams;
     }
 
     // SETTERS
 
-    function withDaoRootDomain(
-        string memory _domain
-    ) public returns (ProtocolFactoryBuilder) {
+    function withDaoRootDomain(string memory _domain) public returns (ProtocolFactoryBuilder) {
         daoRootDomain = _domain;
         return this;
     }
 
-    function withManagementDaoSubdomain(
-        string memory _domain
-    ) public returns (ProtocolFactoryBuilder) {
+    function withManagementDaoSubdomain(string memory _domain) public returns (ProtocolFactoryBuilder) {
         managementDaoSubdomain = _domain;
         return this;
     }
 
-    function withPluginSubdomain(
-        string memory _domain
-    ) public returns (ProtocolFactoryBuilder) {
+    function withPluginSubdomain(string memory _domain) public returns (ProtocolFactoryBuilder) {
         pluginSubdomain = _domain;
         return this;
     }
@@ -183,19 +162,9 @@ contract ProtocolFactoryBuilder is Test {
         tokenVotingPlugin = ProtocolFactory.CorePlugin({
             pluginSetup: new TokenVotingSetup(
                 new GovernanceERC20(
-                    IDAO(address(0)),
-                    "",
-                    "",
-                    GovernanceERC20.MintSettings(
-                        new address[](0),
-                        new uint256[](0)
-                    )
+                    IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
                 ),
-                new GovernanceWrappedERC20(
-                    IERC20Upgradeable(address(0)),
-                    "",
-                    ""
-                )
+                new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
             ),
             release: _release,
             build: _build,
@@ -224,23 +193,17 @@ contract ProtocolFactoryBuilder is Test {
         return this;
     }
 
-    function withManagementDaoMetadataUri(
-        string memory _metadataUri
-    ) public returns (ProtocolFactoryBuilder) {
+    function withManagementDaoMetadataUri(string memory _metadataUri) public returns (ProtocolFactoryBuilder) {
         managementDaoParams.metadataUri = _metadataUri;
         return this;
     }
 
-    function withManagementDaoMembers(
-        address[] memory _members
-    ) public returns (ProtocolFactoryBuilder) {
+    function withManagementDaoMembers(address[] memory _members) public returns (ProtocolFactoryBuilder) {
         managementDaoParams.members = _members;
         return this;
     }
 
-    function withManagementDaoMinApprovals(
-        uint8 _minApprovals
-    ) public returns (ProtocolFactoryBuilder) {
+    function withManagementDaoMinApprovals(uint8 _minApprovals) public returns (ProtocolFactoryBuilder) {
         managementDaoParams.minApprovals = _minApprovals;
         return this;
     }
@@ -250,8 +213,7 @@ contract ProtocolFactoryBuilder is Test {
     /// @dev Creates a DAO with the given orchestration settings.
     /// @dev The setup is done on block/timestamp 0 and tests should be made on block/timestamp 1 or later.
     function build() public returns (ProtocolFactory) {
-        ProtocolFactory.DeploymentParameters
-            memory params = computeFactoryParams();
+        ProtocolFactory.DeploymentParameters memory params = computeFactoryParams();
         factory = new ProtocolFactory(params);
 
         // Store the parameters used for later retrieval
@@ -261,51 +223,19 @@ contract ProtocolFactoryBuilder is Test {
         vm.label(address(factory), "ProtocolFactory");
 
         vm.label(address(params.osxImplementations.daoBase), "DAO_base");
-        vm.label(
-            address(params.osxImplementations.daoRegistryBase),
-            "DAORegistry_base"
-        );
-        vm.label(
-            address(params.osxImplementations.pluginRepoRegistryBase),
-            "PluginRepoRegistry_base"
-        );
-        vm.label(
-            address(params.osxImplementations.placeholderSetup),
-            "PlaceholderSetup"
-        );
-        vm.label(
-            address(params.osxImplementations.ensSubdomainRegistrarBase),
-            "ENSSubdomainRegistrar"
-        );
-        vm.label(
-            address(params.osxImplementations.globalExecutor),
-            "GlobalExecutor"
-        );
+        vm.label(address(params.osxImplementations.daoRegistryBase), "DAORegistry_base");
+        vm.label(address(params.osxImplementations.pluginRepoRegistryBase), "PluginRepoRegistry_base");
+        vm.label(address(params.osxImplementations.placeholderSetup), "PlaceholderSetup");
+        vm.label(address(params.osxImplementations.ensSubdomainRegistrarBase), "ENSSubdomainRegistrar");
+        vm.label(address(params.osxImplementations.globalExecutor), "GlobalExecutor");
         vm.label(address(params.helperFactories.daoHelper), "DAOHelper");
-        vm.label(
-            address(params.helperFactories.pluginRepoHelper),
-            "PluginRepoHelper"
-        );
+        vm.label(address(params.helperFactories.pluginRepoHelper), "PluginRepoHelper");
         vm.label(address(params.helperFactories.pspHelper), "PSPHelper");
         vm.label(address(params.helperFactories.ensHelper), "ENSHelper");
-        vm.label(
-            address(params.corePlugins.adminPlugin.pluginSetup),
-            "AdminSetup"
-        );
-        vm.label(
-            address(params.corePlugins.multisigPlugin.pluginSetup),
-            "MultisigSetup"
-        );
-        vm.label(
-            address(params.corePlugins.tokenVotingPlugin.pluginSetup),
-            "TokenVotingSetup"
-        );
-        vm.label(
-            address(
-                params.corePlugins.stagedProposalProcessorPlugin.pluginSetup
-            ),
-            "StagedProposalProcessorSetup"
-        );
+        vm.label(address(params.corePlugins.adminPlugin.pluginSetup), "AdminSetup");
+        vm.label(address(params.corePlugins.multisigPlugin.pluginSetup), "MultisigSetup");
+        vm.label(address(params.corePlugins.tokenVotingPlugin.pluginSetup), "TokenVotingSetup");
+        vm.label(address(params.corePlugins.stagedProposalProcessorPlugin.pluginSetup), "StagedProposalProcessorSetup");
 
         vm.roll(block.number + 1);
         vm.warp(block.timestamp + 1);
@@ -313,24 +243,14 @@ contract ProtocolFactoryBuilder is Test {
         return factory;
     }
 
-    function computeFactoryParams()
-        private
-        view
-        returns (ProtocolFactory.DeploymentParameters memory result)
-    {
+    function computeFactoryParams() private view returns (ProtocolFactory.DeploymentParameters memory result) {
         address[] memory mgmtDaoMembers = managementDaoParams.members;
         if (mgmtDaoMembers.length == 0) {
             // Set 3 members when empty
             mgmtDaoMembers = new address[](3);
-            mgmtDaoMembers[0] = address(
-                0x0000000000111111111122222222223333333333
-            );
-            mgmtDaoMembers[1] = address(
-                0x1111111111222222222233333333334444444444
-            );
-            mgmtDaoMembers[2] = address(
-                0x2222222222333333333344444444445555555555
-            );
+            mgmtDaoMembers[0] = address(0x0000000000111111111122222222223333333333);
+            mgmtDaoMembers[1] = address(0x1111111111222222222233333333334444444444);
+            mgmtDaoMembers[2] = address(0x2222222222333333333344444444445555555555);
         }
 
         result = ProtocolFactory.DeploymentParameters({
@@ -382,10 +302,8 @@ contract ProtocolFactoryBuilder is Test {
                     pluginSetup: SPP_SETUP,
                     release: stagedProposalProcessorPlugin.release,
                     build: stagedProposalProcessorPlugin.build,
-                    releaseMetadataUri: stagedProposalProcessorPlugin
-                        .releaseMetadataUri,
-                    buildMetadataUri: stagedProposalProcessorPlugin
-                        .buildMetadataUri,
+                    releaseMetadataUri: stagedProposalProcessorPlugin.releaseMetadataUri,
+                    buildMetadataUri: stagedProposalProcessorPlugin.buildMetadataUri,
                     subdomain: stagedProposalProcessorPlugin.subdomain
                 })
             }),

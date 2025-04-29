@@ -8,15 +8,7 @@ import {PluginSetupProcessor} from "@aragon/osx/framework/plugin/setup/PluginSet
 
 /// @notice This contract offloads the deployment of the DAOFactory
 contract DAOHelper is IDAOHelper {
-    function deployFactory(
-        address daoRegistry,
-        address pluginSetupProcessor
-    ) external returns (address daoFactory) {
-        daoFactory = address(
-            new DAOFactory(
-                DAORegistry(daoRegistry),
-                PluginSetupProcessor(pluginSetupProcessor)
-            )
-        );
+    function deployFactory(address daoRegistry, address pluginSetupProcessor) external returns (address daoFactory) {
+        daoFactory = address(new DAOFactory(DAORegistry(daoRegistry), PluginSetupProcessor(pluginSetupProcessor)));
     }
 }

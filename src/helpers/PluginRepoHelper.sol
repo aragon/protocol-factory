@@ -7,11 +7,7 @@ import {PluginRepoRegistry} from "@aragon/osx/framework/plugin/repo/PluginRepoRe
 
 /// @notice This contract offloads the deployment of the PluginRepoFactory
 contract PluginRepoHelper is IPluginRepoHelper {
-    function deployFactory(
-        address pluginRepoRegistry
-    ) external returns (address pluginRepoFactory) {
-        pluginRepoFactory = address(
-            new PluginRepoFactory(PluginRepoRegistry(pluginRepoRegistry))
-        );
+    function deployFactory(address pluginRepoRegistry) external returns (address pluginRepoFactory) {
+        pluginRepoFactory = address(new PluginRepoFactory(PluginRepoRegistry(pluginRepoRegistry)));
     }
 }
