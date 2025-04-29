@@ -2,6 +2,7 @@
 cache/
 out/
 logs/
+artifacts/
 broadcast/
 
 # Docs

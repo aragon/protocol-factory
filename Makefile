@@ -13,6 +13,8 @@ DEPLOY_SCRIPT := script/Deploy.s.sol:DeployScript
 MULTISIG_MEMBERS_FILE := ./multisig-members.json
 MAKE_TEST_TREE_CMD := deno run ./test/scripts/make-test-tree.ts
 TEST_TREE_MARKDOWN := TEST_TREE.md
+ARTIFACTS_FOLDER := ./artifacts
+LOGS_FOLDER := ./logs
 VERBOSITY := -vvv
 
 TEST_COVERAGE_SRC_FILES := $(wildcard test/*.sol test/**/*.sol src/*.sol src/**/*.sol src/libs/ProxyLib.sol)
@@ -145,6 +147,8 @@ $(TEST_TREE_FILES): $(TEST_SOURCE_FILES)
 
 ## Deployment targets:
 
+predeploy: export SIMULATE=true
+
 .PHONY: predeploy
 predeploy: ## Simulate a protocol deployment
 	@echo "Simulating the deployment"
@@ -155,7 +159,7 @@ predeploy: ## Simulate a protocol deployment
 .PHONY: deploy
 deploy: test ## Deploy the protocol and verify the source code
 	@echo "Starting the deployment"
-	@mkdir -p logs/
+	@mkdir -p $(LOGS_FOLDER) $(ARTIFACTS_FOLDER)
 	forge script $(DEPLOY_SCRIPT) \
 		--rpc-url $(RPC_URL) \
 		--retries 10 \
@@ -165,7 +169,7 @@ deploy: test ## Deploy the protocol and verify the source code
 		$(VERIFIER_TYPE_PARAM) \
 		$(VERIFIER_URL_PARAM) \
 		$(ETHERSCAN_API_KEY_PARAM) \
-		$(VERBOSITY) 2>&1 | tee logs/$(DEPLOYMENT_LOG_FILE)
+		$(VERBOSITY) 2>&1 | tee $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
 
 ##
 

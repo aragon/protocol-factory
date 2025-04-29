@@ -3,7 +3,10 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
-fs_permissions = [{ access = "read", path = "./multisig-members.json" }]
+fs_permissions = [
+    { access = "read", path = "./multisig-members.json" },
+    { access = "write", path = "./artifacts" },
+]
 
 evm_version = "cancun"
 optimizer = true
