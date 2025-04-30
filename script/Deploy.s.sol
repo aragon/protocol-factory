@@ -43,9 +43,6 @@ contract DeployScript is Script {
     string constant DEFAULT_PLUGIN_ENS_SUBDOMAIN = "plugin";
     string constant DEFAULT_MANAGEMENT_DAO_MEMBERS_FILE_NAME = "multisig-members.json";
 
-    // Output
-    string constant ADDRESSES_FILE = "addresses.json";
-
     DAO daoBase;
     DAORegistry daoRegistryBase;
     PluginRepoRegistry pluginRepoRegistryBase;
@@ -175,7 +172,7 @@ contract DeployScript is Script {
 
         bool exists = vm.keyExistsJson(strJson, "$.members");
         if (!exists) {
-            revert("The file pointed by MANAGEMENT_DAO_MEMBERS_FILE_NAME does not exist");
+            revert("The file pointed by MANAGEMENT_DAO_MEMBERS_FILE_NAME does not contain any members");
         }
 
         result = vm.parseJsonAddressArray(strJson, "$.members");
@@ -339,7 +336,10 @@ contract DeployScript is Script {
         version.serialize("corePlugins", corePluginsAddresses);
         version = version.serialize("protocolFactory", address(factory));
 
-        string memory filePath = string.concat(vm.projectRoot(), "/artifacts/", ADDRESSES_FILE);
+        string memory networkName = vm.envString("NETWORK_NAME");
+        string memory filePath = string.concat(
+            vm.projectRoot(), "/artifacts/addresses-", networkName, "-", Strings.toString(block.timestamp), ".json"
+        );
         version.write(filePath);
 
         console.log("Deployment addresses written to", filePath);
