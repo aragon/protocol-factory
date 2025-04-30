@@ -321,9 +321,7 @@ contract DeployScript is Script {
                     )
                 ),
                 members: readManagementDaoMembers(),
-                minApprovals: uint8(
-                    vm.envOr("MANAGEMENT_DAO_MIN_APPROVALS", uint256(3))
-                )
+                minApprovals: uint8(vm.envUint("MANAGEMENT_DAO_MIN_APPROVALS"))
             })
         });
     }

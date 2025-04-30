@@ -396,7 +396,7 @@ contract ProtocolFactory {
                 (
                     corePlugin.release,
                     address(parameters.osxImplementations.placeholderSetup),
-                    bytes(corePlugin.buildMetadataUri),
+                    bytes(""), // no actual build
                     bytes(corePlugin.releaseMetadataUri)
                 )
             );
