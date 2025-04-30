@@ -89,7 +89,7 @@ Check the available make targets to simulate and deploy the smart contracts:
 - [ ] The factory contract was deployed by the deployment address
 - [ ] All the project's smart contracts are correctly verified on the reference block explorer of the target network.
 - [ ] The output of the latest `logs/deployment-<network>.log` file corresponds to the console output
-- [ ] A file called `artifacts/addresses.json` has been created, and the addresses match those logged to the screen
+- [ ] A file called `artifacts/addresses-<network>-<timestamp>.json` has been created, and the addresses match those logged to the screen
 - [ ] I have uploaded these two files to a shared location
     - [ ] The rest of members confirm that the vlaues are correct
 - [ ] I have transferred the remaining funds of the deployment wallet to the address that originally funded it
