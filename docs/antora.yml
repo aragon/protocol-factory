@@ -1,0 +1,6 @@
+name: spp
+title: "Protocol Factory"
+version: 1.x
+prerelease: false
+nav:
+    - modules/ROOT/nav.adoc

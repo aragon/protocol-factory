@@ -103,7 +103,15 @@ If you are building an OSx plugin and need a fresh OSx deployment on your test s
 
 ### Foundry
 
-The simplest example:
+Add the Protocol Factory as a dependency:
+
+```sh
+forge install aragon/protocol-factory
+```
+
+Given that this repository already includes OSx, you may remove the existing OSx dependencies and update your `remappings.txt` file to point to the OSx version of `protocol-factory`.
+
+#### The simplest example
 
 ```solidity
 // Adjust the path according to your remappings.txt file
@@ -118,7 +126,7 @@ ProtocolFactory.Deployment memory deployment = factory.getDeployment();
 console.log("DaoFactory", deployment.daoFactory);
 ```
 
-If you need to override the default parameters:
+#### If you need to override some parameters
 
 ```solidity
 // Adjust the path according to your remappings.txt file
