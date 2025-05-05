@@ -47,10 +47,6 @@ import {TokenVotingSetup} from "@aragon/token-voting-plugin/TokenVotingSetup.sol
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
 import {GovernanceERC20} from "@aragon/token-voting-plugin/ERC20/governance/GovernanceERC20.sol";
 
-interface IResolver {
-    function addr(bytes32 node) external view returns (address);
-}
-
 contract ProtocolFactoryTest is AragonTest {
     ProtocolFactoryBuilder builder;
     ProtocolFactory factory;
@@ -253,6 +249,29 @@ contract ProtocolFactoryTest is AragonTest {
         // It Deployment addresses should remain unchanged
         ProtocolFactory.Deployment memory deployment2 = factory.getDeployment();
         assertEq(keccak256(abi.encode(deployment1)), keccak256(abi.encode(deployment2)));
+    }
+
+    function test_RevertGiven_TheManagementDAOMinApprovalsIsTooSmall() external whenInvokingDeployOnce {
+        // It Should revert
+
+        builder = new ProtocolFactoryBuilder();
+
+        // One member, two approvals
+        mgmtDaoMembers = new address[](1);
+        mgmtDaoMembers[0] = alice;
+        builder.withManagementDaoMembers(mgmtDaoMembers).withManagementDaoMinApprovals(2);
+        factory = builder.build();
+
+        // Fail
+        vm.expectRevert(ProtocolFactory.MemberListIsTooSmall.selector);
+        factory.deployOnce();
+
+        // OK
+        mgmtDaoMembers = new address[](2);
+        mgmtDaoMembers[0] = alice;
+        mgmtDaoMembers[1] = bob;
+        builder.withManagementDaoMembers(mgmtDaoMembers).withManagementDaoMinApprovals(2);
+        factory = builder.build();
     }
 
     modifier givenAProtocolDeployment() {
@@ -1874,4 +1893,8 @@ contract ProtocolFactoryTest is AragonTest {
             )
         );
     }
+}
+
+interface IResolver {
+    function addr(bytes32 node) external view returns (address);
 }

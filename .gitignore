@@ -1,15 +1,18 @@
-# Compiler files
+# Artifacts
 cache/
 out/
 logs/
 artifacts/
 broadcast/
 
+# Testing
 test/*.tree
+lcov.info
+report
 
-# Dotenv file
+# Settings
 .env
-
 multisig-members.json
 
+# Other
 .DS_Store

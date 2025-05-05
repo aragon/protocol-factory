@@ -17,7 +17,7 @@ ARTIFACTS_FOLDER := ./artifacts
 LOGS_FOLDER := ./logs
 VERBOSITY := -vvv
 
-TEST_COVERAGE_SRC_FILES := $(wildcard test/*.sol test/**/*.sol src/*.sol src/**/*.sol src/libs/ProxyLib.sol)
+TEST_COVERAGE_SRC_FILES := $(wildcard test/*.sol test/**/*.sol src/*.sol src/**/*.sol)
 TEST_SOURCE_FILES := $(wildcard test/*.t.yaml test/integration/*.t.yaml)
 TEST_TREE_FILES := $(TEST_SOURCE_FILES:.t.yaml=.tree)
 DEPLOYMENT_ADDRESS := $(shell cast wallet address --private-key $(DEPLOYMENT_PRIVATE_KEY) 2>/dev/null || echo "NOTE: DEPLOYMENT_PRIVATE_KEY is not properly set on .env" > /dev/stderr)
@@ -79,16 +79,19 @@ $(MULTISIG_MEMBERS_FILE):
 
 ## Testing lifecycle:
 
+# Run tests faster, locally
+test: export ETHERSCAN_API_KEY=
+
 .PHONY: test
 test: ## Run unit tests, locally
 	forge test $(VERBOSITY)
 
 test-coverage: report/index.html ## Generate an HTML coverage report under ./report
-	@which open > /dev/null && open report/index.html || echo -n
-	@which xdg-open > /dev/null && xdg-open report/index.html || echo -n
+	@which open > /dev/null && open report/index.html || true
+	@which xdg-open > /dev/null && xdg-open report/index.html || true
 
 report/index.html: lcov.info
-	genhtml $^ -o report --branch-coverage
+	genhtml $^ -o report
 
 lcov.info: $(TEST_COVERAGE_SRC_FILES)
 	forge coverage --report lcov
