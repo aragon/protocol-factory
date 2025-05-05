@@ -10,7 +10,7 @@ For local testing, see [Using the Factory for local tests](#using-the-factory-fo
 
 ### Using the Makefile
 
-The `Makefile` is the target launcher of the project. It's the recommended way to work with it. It manages the env variables of common tasks and executes only the steps that need to be run.
+The `Makefile` is the target launcher of the project. It's the recommended way to work with the factory for protocol deployments. It manages the env variables of common tasks and executes only the steps that need to be run.
 
 ```
 $ make
