@@ -1,0 +1,38 @@
+= Protocol Factory
+
+== Description
+
+OSx is a complex protocol which requires a non trivial deployment process. Complex processes are error-prone and could lead to unadverted mistakes that compromise the security of the entire deployment.
+
+The Protocol Factory contains a set of contracts that encapsulate and abstract the deployment of OSx, the Management DAO and the Core plugins built by Aragon.
+
+=== Goals
+
+To ensure the soundness and verifiability of OSx deployments, the Protocol Factory is designed to fulfill the following guarantees:
+
+* The deployment is atomic (all or nothing)
+* The deployer's wallet holds no privilege whatsoever (not even temporarily)
+* The deployment parameters are transparent and verifiable
+* The logic of the deployment is entirely verifiable via the source code
+* The factory is only used once
+* The factory becomes read-only after is is used
+** Anyone can read the deployed addresses, as well as the deployment parameters used
+* No reverse engineering is required, the code is explicit
+
+These properties ensure that not just the protocol contracts but also the deployment itself is end-to-end verifiable.
+
+== Constraints
+
+Due to the inherent limitations of the EVM, the factory cannot contain the bytecode of all the contracts without exceeding the code size limit. This forces the bytecode to be split in several transactions.
+
+- The implementation contracts used by a proxy are deployed by the Foundry deployment script (`Deploy.s.sol`), then passed to the factory. The factory creates all proxies with the final settings on-chain.
+- For contracts that need to be a static instance (deployed like `new MyContract()`, the factory uses helpers (subfactories). They deploy a new instance, given the parameters provided by the main factory.
+
+Even if the raw deployments are split out, the protocol orchestration and configuration remain entirely on-chain and fully verifiable.
+
+== Use cases
+
+The Protocol Factory serves two main use cases.
+
+- xref:deployment.adoc[Deploying the protocol] to a new chain
+- xref:osx-local-testing.adoc[Deploying a local OSx deployment for Plugin development]

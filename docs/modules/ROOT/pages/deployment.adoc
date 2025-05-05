@@ -1,0 +1,7 @@
+= Deploying OSx
+
+The recommended way to perform a production deployment is to hold a ceremony with several EVM and security experts attending it.
+
+== Ceremony steps
+
+The detailed steps that should be followed during the ceremony link:https://github.com/aragon/protocol-factory?tab=readme-ov-file#deployment-checklist[can be found here].

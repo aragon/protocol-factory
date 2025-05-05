@@ -1,6 +1,6 @@
 = Testing OSx locally
 
-If you are building an OSx Plugin and need a fresh OSx deployment on your test suite, your best option is by using the `ProtocolFactoryBuilder` with Foundry.
+If you are building an OSx Plugin and need fresh deployments of OSx on your test suite, your best option is to use the `ProtocolFactoryBuilder` with Foundry.
 
 == Foundry
 
@@ -10,13 +10,20 @@ Add the Protocol Factory as a dependency:
 forge install aragon/protocol-factory
 ```
 
-Given that this repository already includes OSx, you may remove the existing OSx dependencies and update your `remappings.txt` file to point to the OSx version of `protocol-factory`.
+Given that this repository already includes OSx, you may want to remove the existing OSx dependency and update your `remappings.txt` file to point to the OSx version within `protocol-factory`.
+
+```
+-@aragon/osx/=lib/osx/packages/contracts/src/
+
++@aragon/protocol-factory/=lib/protocol-factory/
++@aragon/osx/=lib/protocol-factory/lib/osx/packages/contracts/src/
+```
 
 === The simplest example
 
 ```solidity
 // Adjust the path according to your remappings.txt file
-import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/helpers/ProtocolFactoryBuilder.sol";
+import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/test/helpers/ProtocolFactoryBuilder.sol";
 
 // Using the default parameters
 ProtocolFactory factory = new ProtocolFactoryBuilder().build();
@@ -31,7 +38,7 @@ console.log("DaoFactory", deployment.daoFactory);
 
 ```solidity
 // Adjust the path according to your remappings.txt file
-import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/helpers/ProtocolFactoryBuilder.sol";
+import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/test/helpers/ProtocolFactoryBuilder.sol";
 
 ProtocolFactoryBuilder builder = new ProtocolFactoryBuilder();
 
@@ -67,16 +74,18 @@ The ProtocolFactoryBuilder needs Foundry in order to work, as it makes use of th
 == Testing with other Solidity frameworks
 
 Due to the code size limitations, the ProtocolFactory needs to split things into two steps:
+
 - The raw deployment of the (stateless) implementations
 - The orchestration of the final protocol contracts (stateful)
 
-The raw deployment is offloaded to [Deploy.s.sol](./script/Deploy.s.sol) and to the following helper factories:
+The raw deployment is offloaded to `Deploy.s.sol` and to the following helper factories:
+
 - DAOHelper
 - ENSHelper
 - PluginRepoHelper
 - PSPHelper
 
-To test locally, you need to replicate the logic of [Deploy.s.sol](./script/Deploy.s.sol), and pass both the deployment parameters as well as the helper factory addresses to the constructor.
+To test locally, you need to replicate the logic of `Deploy.s.sol`, and pass both the deployment parameters as well as the helper factory addresses to the constructor.
 
 ```solidity
 // Implementations
