@@ -13,10 +13,12 @@ ProtocolFactoryTest
 │   │   ├── It Should emit an event with the factory address
 │   │   ├── It The used ENS setup matches the given parameters
 │   │   └── It The deployment addresses are filled with the new contracts
-│   └── Given The factory already made a deployment
-│       ├── It Should revert
-│       ├── It Parameters should remain unchanged
-│       └── It Deployment addresses should remain unchanged
+│   ├── Given The factory already made a deployment
+│   │   ├── It Should revert
+│   │   ├── It Parameters should remain unchanged
+│   │   └── It Deployment addresses should remain unchanged
+│   └── Given The Management DAO minApprovals is too small
+│       └── It Should revert
 └── Given A protocol deployment
     ├── When Calling getParameters
     │   └── It Should return the given values
@@ -50,6 +52,7 @@ ProtocolFactoryTest
     ├── When Applying an SPP plugin installation
     │   └── It Should allow its bodies to execute on the DAO
     └── When Calling hasPermission
+        ├── It Returns true on all the permissions that the Management DAO should have on itself
         └── It Returns false on all the temporary permissions granted to the factory
 ```
 

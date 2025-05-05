@@ -17,6 +17,9 @@ ProtocolFactoryTest:
           - it: Should revert
           - it: Parameters should remain unchanged
           - it: Deployment addresses should remain unchanged
+      - given: The Management DAO minApprovals is too small
+        then:
+          - it: Should revert
 
   - given: A protocol deployment
     and:
