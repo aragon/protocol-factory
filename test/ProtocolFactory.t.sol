@@ -261,11 +261,11 @@ contract ProtocolFactoryTest is AragonTest {
         mgmtDaoMembers[0] = alice;
         builder.withManagementDaoMembers(mgmtDaoMembers).withManagementDaoMinApprovals(2);
         factory = builder.build();
-        
+
         // Fail
         vm.expectRevert(ProtocolFactory.MemberListIsTooSmall.selector);
         factory.deployOnce();
-        
+
         // OK
         mgmtDaoMembers = new address[](2);
         mgmtDaoMembers[0] = alice;
