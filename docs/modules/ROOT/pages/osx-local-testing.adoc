@@ -10,7 +10,7 @@ Add the Protocol Factory as a dependency:
 forge install aragon/protocol-factory
 ```
 
-Given that this repository already includes OSx, you may want to remove the existing OSx dependency and update your `remappings.txt` file to point to the OSx version within `protocol-factory`.
+Given that this repository already depends on OSx, you may want to replace the existing `remappings.txt` entry and use the OSx path provided by `protocol-factory` itself.
 
 ```
 -@aragon/osx/=lib/osx/packages/contracts/src/

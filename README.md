@@ -6,6 +6,8 @@ This reposity contains a factory contract and a set of scripts to deploy OSx and
 
 To get started, ensure that [Foundry](https://getfoundry.sh/), [Make](https://www.gnu.org/software/make/) and [Docker](https://www.docker.com) are installed on your computer.
 
+For local testing, see [Using the Factory for local tests](#using-the-factory-for-local-tests) below.
+
 ### Using the Makefile
 
 The `Makefile` is the target launcher of the project. It's the recommended way to work with it. It manages the env variables of common tasks and executes only the steps that need to be run.
@@ -36,10 +38,15 @@ Deployment targets:
 - make refund           Refund the remaining balance left on the deployment account
 ```
 
+Copy `.env.example` into `.env`:
+
+```sh
+cp .env.example .env
+```
+
 Run `make init`:
 - It ensures that Foundry is installed
 - It runs a first compilation of the project
-- It copies `.env.example` into `.env`
 
 Next, set the values of `.env` according to your environment.
 
@@ -61,6 +68,7 @@ Check the available make targets to simulate and deploy the smart contracts:
   - [ ] I have run `curl -L https://foundry.paradigm.xyz | bash`
   - [ ] I have run `source /root/.bashrc && foundryup`
   - [ ] I have run `cd /deployment`
+  - [ ] I have run `cp .env.example .env`
   - [ ] I have run `make init`
 - [ ] I am opening an editor on the `/deployment` folder, within the Docker container
 - [ ] The `.env` file contains the correct parameters for the deployment
@@ -91,7 +99,7 @@ Check the available make targets to simulate and deploy the smart contracts:
 - [ ] The output of the latest `logs/deployment-<network>.log` file corresponds to the console output
 - [ ] A file called `artifacts/addresses-<network>-<timestamp>.json` has been created, and the addresses match those logged to the screen
 - [ ] I have uploaded these two files to a shared location
-    - [ ] The rest of members confirm that the vlaues are correct
+    - [ ] The rest of members confirm that the values are correct
 - [ ] I have transferred the remaining funds of the deployment wallet to the address that originally funded it
   - `make refund`
 
@@ -109,13 +117,20 @@ Add the Protocol Factory as a dependency:
 forge install aragon/protocol-factory
 ```
 
-Given that this repository already includes OSx, you may remove the existing OSx dependencies and update your `remappings.txt` file to point to the OSx version of `protocol-factory`.
+Given that this repository already depends on OSx, you may want to replace the existing `remappings.txt` entry and use the OSx path provided by `protocol-factory` itself.
+
+```diff
+-@aragon/osx/=lib/osx/packages/contracts/src/
+
++@aragon/protocol-factory/=lib/protocol-factory/
++@aragon/osx/=lib/protocol-factory/lib/osx/packages/contracts/src/
+```
 
 #### The simplest example
 
 ```solidity
 // Adjust the path according to your remappings.txt file
-import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/helpers/ProtocolFactoryBuilder.sol";
+import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/test/helpers/ProtocolFactoryBuilder.sol";
 
 // Using the default parameters
 ProtocolFactory factory = new ProtocolFactoryBuilder().build();
@@ -130,7 +145,7 @@ console.log("DaoFactory", deployment.daoFactory);
 
 ```solidity
 // Adjust the path according to your remappings.txt file
-import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/helpers/ProtocolFactoryBuilder.sol";
+import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/test/helpers/ProtocolFactoryBuilder.sol";
 
 ProtocolFactoryBuilder builder = new ProtocolFactoryBuilder();
 
