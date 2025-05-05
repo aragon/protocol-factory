@@ -1,0 +1,180 @@
+= Testing OSx locally
+
+If you are building an OSx Plugin and need fresh deployments of OSx on your test suite, your best option is to use the `ProtocolFactoryBuilder` with Foundry.
+
+== Foundry
+
+Add the Protocol Factory as a dependency:
+
+```sh
+forge install aragon/protocol-factory
+```
+
+Given that this repository already depends on OSx, you may want to replace the existing `remappings.txt` entry and use the OSx path provided by `protocol-factory` itself.
+
+```
+-@aragon/osx/=lib/osx/packages/contracts/src/
+
++@aragon/protocol-factory/=lib/protocol-factory/
++@aragon/osx/=lib/protocol-factory/lib/osx/packages/contracts/src/
+```
+
+=== The simplest example
+
+```solidity
+// Adjust the path according to your remappings.txt file
+import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/test/helpers/ProtocolFactoryBuilder.sol";
+
+// Using the default parameters
+ProtocolFactory factory = new ProtocolFactoryBuilder().build();
+factory.deployOnce();
+
+// Get the deployed addresses
+ProtocolFactory.Deployment memory deployment = factory.getDeployment();
+console.log("DaoFactory", deployment.daoFactory);
+```
+
+=== Overriding some default parameters
+
+```solidity
+// Adjust the path according to your remappings.txt file
+import {ProtocolFactoryBuilder} from "@aragon/protocol-factory/test/helpers/ProtocolFactoryBuilder.sol";
+
+ProtocolFactoryBuilder builder = new ProtocolFactoryBuilder();
+
+// Using custom parameters
+ProtocolFactory factory = builder
+    .withAdminPlugin(
+        1, // plugin release
+        2, // plugin build
+        "ipfs://release-metadata-uri",
+        "ipfs://build-metadata-uri",
+        "admin" // admin.plugin.dao.eth (subdomain)
+    )
+    // .withMultisigPlugin(...)
+    // .withTokenVotingPlugin(...)
+    // .withStagedProposalProcessorPlugin(...)
+    .withDaoRootDomain("dao") // dao.eth
+    .withManagementDaoSubdomain("mgmt") // mgmt.dao.eth
+    .withPluginSubdomain("plugin") // plugin.dao.eth
+    .withManagementDaoMetadataUri("ipfs://new-metadata-uri")
+    .withManagementDaoMembers(new address[](3))
+    .withManagementDaoMinApprovals(2)
+    .build();
+
+factory.deployOnce();
+
+// Get the deployed addresses
+ProtocolFactory.Deployment memory deployment = factory.getDeployment();
+console.log("DaoFactory", deployment.daoFactory);
+```
+
+The ProtocolFactoryBuilder needs Foundry in order to work, as it makes use of the Std cheat codes.
+
+== Testing with other Solidity frameworks
+
+Due to the code size limitations, the ProtocolFactory needs to split things into two steps:
+
+- The raw deployment of the (stateless) implementations
+- The orchestration of the final protocol contracts (stateful)
+
+The raw deployment is offloaded to `Deploy.s.sol` and to the following helper factories:
+
+- DAOHelper
+- ENSHelper
+- PluginRepoHelper
+- PSPHelper
+
+To test locally, you need to replicate the logic of `Deploy.s.sol`, and pass both the deployment parameters as well as the helper factory addresses to the constructor.
+
+```solidity
+// Implementations
+DAO daoBase = new DAO();
+DAORegistry daoRegistryBase = new DAORegistry();
+PluginRepoRegistry pluginRepoRegistryBase = new PluginRepoRegistry();
+ENSSubdomainRegistrar ensSubdomainRegistrarBase = new ENSSubdomainRegistrar();
+
+PlaceholderSetup placeholderSetup = new PlaceholderSetup();
+GlobalExecutor globalExecutor = new GlobalExecutor();
+
+DAOHelper daoHelper = new DAOHelper();
+PluginRepoHelper pluginRepoHelper = new PluginRepoHelper();
+PSPHelper pspHelper = new PSPHelper();
+ENSHelper ensHelper = new ENSHelper();
+
+AdminSetup adminSetup = new AdminSetup();
+MultisigSetup multisigSetup = new MultisigSetup();
+TokenVotingSetup tokenVotingSetup = new TokenVotingSetup(
+    new GovernanceERC20(
+        IDAO(address(0)), "", "",
+        GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
+    ),
+    new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
+);
+StagedProposalProcessorSetup stagedProposalProcessorSetup = new StagedProposalProcessorSetup();
+
+// Parameters
+ProtocolFactory.DeploymentParameters memory params = ProtocolFactory.DeploymentParameters({
+    osxImplementations: ProtocolFactory.OSxImplementations({
+        daoBase: address(daoBase),
+        daoRegistryBase: address(daoRegistryBase),
+        pluginRepoRegistryBase: address(pluginRepoRegistryBase),
+        placeholderSetup: address(placeholderSetup),
+        ensSubdomainRegistrarBase: address(ensSubdomainRegistrarBase),
+        globalExecutor: address(globalExecutor)
+    }),
+    helperFactories: ProtocolFactory.HelperFactories({
+        daoHelper: daoHelper,
+        pluginRepoHelper: pluginRepoHelper,
+        pspHelper: pspHelper,
+        ensHelper: ensHelper
+    }),
+    ensParameters: ProtocolFactory.EnsParameters({
+        daoRootDomain: daoRootDomain,
+        managementDaoSubdomain: managementDaoSubdomain,
+        pluginSubdomain: pluginSubdomain
+    }),
+    corePlugins: ProtocolFactory.CorePlugins({
+        adminPlugin: ProtocolFactory.CorePlugin({
+            pluginSetup: adminSetup,
+            release: 1,
+            build: 2,
+            releaseMetadataUri: releaseMetadataUri,
+            buildMetadataUri: buildMetadataUri,
+            subdomain: subdomain
+        }),
+        multisigPlugin: ProtocolFactory.CorePlugin({
+            pluginSetup: multisigSetup,
+            release: 1,
+            build: 3,
+            releaseMetadataUri: releaseMetadataUri,
+            buildMetadataUri: buildMetadataUri,
+            subdomain: subdomain
+        }),
+        tokenVotingPlugin: ProtocolFactory.CorePlugin({
+            pluginSetup: tokenVotingSetup,
+            release: 1,
+            build: 3,
+            releaseMetadataUri: releaseMetadataUri,
+            buildMetadataUri: buildMetadataUri,
+            subdomain: subdomain
+        }),
+        stagedProposalProcessorPlugin: ProtocolFactory.CorePlugin({
+            pluginSetup: stagedProposalProcessorSetup,
+            release: 1,
+            build: 1,
+            releaseMetadataUri: releaseMetadataUri,
+            buildMetadataUri: buildMetadataUri,
+            subdomain: subdomain
+        })
+    }),
+    managementDao: ProtocolFactory.ManagementDaoParameters({
+        metadataUri: metadataUri,
+        members: members,
+        minApprovals: minApprovals
+    })
+});
+
+ProtocolFactory factory = new ProtocolFactory(params);
+factory.deployOnce();
+```

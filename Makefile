@@ -20,7 +20,7 @@ VERBOSITY := -vvv
 TEST_COVERAGE_SRC_FILES := $(wildcard test/*.sol test/**/*.sol src/*.sol src/**/*.sol src/libs/ProxyLib.sol)
 TEST_SOURCE_FILES := $(wildcard test/*.t.yaml test/integration/*.t.yaml)
 TEST_TREE_FILES := $(TEST_SOURCE_FILES:.t.yaml=.tree)
-DEPLOYMENT_ADDRESS := $(shell cast wallet address --private-key $(DEPLOYMENT_PRIVATE_KEY) 2>/dev/null || echo "NOTE: DEPLOYMENT_PRIVATE_KEY from .env is not set" > /dev/stderr)
+DEPLOYMENT_ADDRESS := $(shell cast wallet address --private-key $(DEPLOYMENT_PRIVATE_KEY) 2>/dev/null || echo "NOTE: DEPLOYMENT_PRIVATE_KEY is not properly set on .env" > /dev/stderr)
 
 DEPLOYMENT_LOG_FILE=deployment-$(patsubst "%",%,$(NETWORK_NAME))-$(shell date +"%y-%m-%d-%H-%M").log
 
@@ -57,7 +57,7 @@ help: ## Display the available targets
 ##
 
 .PHONY: init
-init: .env $(MULTISIG_MEMBERS_FILE) ## Check the dependencies and prompt to install if needed
+init: $(MULTISIG_MEMBERS_FILE) ## Check the dependencies and prompt to install if needed
 	@which deno > /dev/null && echo "Deno is available" || echo "Install Deno:  curl -fsSL https://deno.land/install.sh | sh"
 	@which bulloak > /dev/null && echo "bulloak is available" || echo "Install bulloak:  cargo install bulloak"
 
@@ -71,12 +71,6 @@ clean: ## Clean the build artifacts
 	rm -f $(TEST_TREE_FILES)
 	rm -f $(TEST_TREE_MARKDOWN)
 	rm -Rf ./out/* lcov.info* ./report/*
-
-# Copy the .env files if not present
-.env:
-	@echo "Creating $(@)"
-	cp .env.example .env
-	@echo "NOTE: Edit the correct values of $(@) before you continue"
 
 $(MULTISIG_MEMBERS_FILE):
 	@echo "Creating $(@)"
@@ -93,11 +87,8 @@ test-coverage: report/index.html ## Generate an HTML coverage report under ./rep
 	@which open > /dev/null && open report/index.html || echo -n
 	@which xdg-open > /dev/null && xdg-open report/index.html || echo -n
 
-report/index.html: lcov.info.pruned
+report/index.html: lcov.info
 	genhtml $^ -o report --branch-coverage
-
-lcov.info.pruned: lcov.info
-	lcov --remove $< -o ./$@ $^
 
 lcov.info: $(TEST_COVERAGE_SRC_FILES)
 	forge coverage --report lcov
