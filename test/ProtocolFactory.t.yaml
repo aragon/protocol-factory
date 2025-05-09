@@ -78,3 +78,7 @@ ProtocolFactoryTest:
         then:
           - it: Returns true on all the permissions that the Management DAO should have on itself
           - it: Returns false on all the temporary permissions granted to the factory
+      - when: Upgrading the protocol
+        then:
+          - it: The new protocol contracts point to the new implementations
+          - it: The upgrade proposal succeeds

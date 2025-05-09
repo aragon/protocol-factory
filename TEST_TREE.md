@@ -51,8 +51,11 @@ ProtocolFactoryTest
     │   └── It Should complete normally
     ├── When Applying an SPP plugin installation
     │   └── It Should allow its bodies to execute on the DAO
-    └── When Calling hasPermission
-        ├── It Returns true on all the permissions that the Management DAO should have on itself
-        └── It Returns false on all the temporary permissions granted to the factory
+    ├── When Calling hasPermission
+    │   ├── It Returns true on all the permissions that the Management DAO should have on itself
+    │   └── It Returns false on all the temporary permissions granted to the factory
+    └── When Upgrading the protocol
+        ├── It The new protocol contracts point to the new implementations
+        └── It The upgrade proposal succeeds
 ```
 

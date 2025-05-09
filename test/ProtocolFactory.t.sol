@@ -1817,6 +1817,321 @@ contract ProtocolFactoryTest is AragonTest {
         );
     }
 
+    function test_WhenUpgradingTheProtocol() external givenAProtocolDeployment {
+        // It The new protocol contracts point to the new implementations
+        // It The upgrade proposal succeeds
+
+        // Build a parallel deployment, manually
+        ProtocolFactory factoryParallel = builder.build();
+        factoryParallel.deployOnce();
+        ProtocolFactory.Deployment memory deploymentParallel = factoryParallel
+            .getDeployment();
+        ProtocolFactory.DeploymentParameters memory deploymentParametersParallel = factoryParallel
+            .getDeploymentParameters();
+
+        DAO managementDao = DAO(payable(deployment.managementDao));
+        Multisig multisig = Multisig(deployment.managementDaoMultisig);
+
+        // 1) NEW PLUGIN VERSIONS
+        Action[] memory actions = new Action[](4);
+        // Publish new plugin versions
+        actions[0] = Action({
+            to: deployment.adminPluginRepo,
+            value: 0,
+            data: abi.encodeCall(
+                PluginRepo.createVersion,
+                (
+                    1, // target release
+                    deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup,
+                    bytes("ipfs://new-build"),
+                    bytes("ipfs://new-release")
+                )
+            )
+        });
+        actions[1] = Action({
+            to: deployment.multisigPluginRepo,
+            value: 0,
+            data: abi.encodeCall(
+                PluginRepo.createVersion,
+                (
+                    1, // target release
+                    deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup,
+                    bytes("ipfs://new-build"),
+                    bytes("ipfs://new-release")
+                )
+            )
+        });
+        actions[2] = Action({
+            to: deployment.tokenVotingPluginRepo,
+            value: 0,
+            data: abi.encodeCall(
+                PluginRepo.createVersion,
+                (
+                    1, // target release
+                    deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup,
+                    bytes("ipfs://new-build"),
+                    bytes("ipfs://new-release")
+                )
+            )
+        });
+        actions[3] = Action({
+            to: deployment.stagedProposalProcessorPluginRepo,
+            value: 0,
+            data: abi.encodeCall(
+                PluginRepo.createVersion,
+                (
+                    1, // target release
+                    deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup,
+                    bytes("ipfs://new-build"),
+                    bytes("ipfs://new-release")
+                )
+            )
+        });
+
+        // Move 1 block forward to avoid ProposalCreationForbidden()
+        vm.roll(block.number + 1);
+
+        // PROPOSAL
+
+        vm.prank(alice);
+        uint256 proposalId = multisig.createProposal(
+            bytes("ipfs://prop-new-plugin-versions"),
+            actions,
+            0, // startdate
+            uint64(block.timestamp + 100), // enddate
+            bytes("")
+        );
+        // Move 1 block forward to avoid missing the snapshot block
+        vm.roll(block.number + 1);
+
+        // Approve
+        vm.prank(alice);
+        multisig.approve(proposalId, false);
+        vm.prank(bob);
+        multisig.approve(proposalId, false);
+
+        PluginRepo adminRepo = PluginRepo(deployment.adminPluginRepo);
+        PluginRepo multisigRepo = PluginRepo(deployment.multisigPluginRepo);
+        PluginRepo tokenVotingRepo = PluginRepo(
+            deployment.tokenVotingPluginRepo
+        );
+        PluginRepo sppRepo = PluginRepo(
+            deployment.stagedProposalProcessorPluginRepo
+        );
+
+        // Before
+        assertNotEq(
+            adminRepo.getLatestVersion(1).pluginSetup,
+            deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup,
+            "Should not be the new version"
+        );
+        assertNotEq(
+            multisigRepo.getLatestVersion(1).pluginSetup,
+            deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup,
+            "Should not be the new version"
+        );
+        assertNotEq(
+            tokenVotingRepo.getLatestVersion(1).pluginSetup,
+            deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup,
+            "Should not be the new version"
+        );
+        assertNotEq(
+            sppRepo.getLatestVersion(1).pluginSetup,
+            deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup,
+            "Should not be the new version"
+        );
+
+        // Execute
+        vm.prank(carol);
+        multisig.execute(proposalId);
+
+        // After
+        assertEq(
+            adminRepo.getLatestVersion(1).pluginSetup,
+            deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup,
+            "Should be the new version"
+        );
+        assertEq(
+            multisigRepo.getLatestVersion(1).pluginSetup,
+            deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup,
+            "Should be the new version"
+        );
+        assertEq(
+            tokenVotingRepo.getLatestVersion(1).pluginSetup,
+            deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup,
+            "Should be the new version"
+        );
+        assertEq(
+            sppRepo.getLatestVersion(1).pluginSetup,
+            deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup,
+            "Should be the new version"
+        );
+
+        // 2) REGISTRY PERMISSIONS
+
+        DAOFactory newDaoFactory = DAOFactory(deploymentParallel.daoFactory);
+        PluginRepoFactory newPluginRepoFactory = PluginRepoFactory(
+            deploymentParallel.pluginRepoFactory
+        );
+
+        actions = new Action[](1);
+
+        // Move the REGISTER_DAO_PERMISSION_ID permission on the DAORegistry from the old DAOFactory to the new one
+        PermissionLib.MultiTargetPermission[]
+            memory newPermissions = new PermissionLib.MultiTargetPermission[](
+                4
+            );
+        newPermissions[0] = PermissionLib.MultiTargetPermission({
+            operation: PermissionLib.Operation.Revoke,
+            where: deployment.daoRegistry,
+            who: deployment.daoFactory,
+            condition: address(0),
+            permissionId: keccak256("REGISTER_DAO_PERMISSION")
+        });
+        newPermissions[1] = PermissionLib.MultiTargetPermission({
+            operation: PermissionLib.Operation.Grant,
+            where: deployment.daoRegistry,
+            who: address(newDaoFactory),
+            condition: address(0),
+            permissionId: keccak256("REGISTER_DAO_PERMISSION")
+        });
+
+        // Move the REGISTER_PLUGIN_REPO_PERMISSION_ID permission on the PluginRepoRegistry from the old PluginRepoFactory to the new PluginRepoFactory
+        newPermissions[2] = PermissionLib.MultiTargetPermission({
+            operation: PermissionLib.Operation.Revoke,
+            where: deployment.pluginRepoRegistry,
+            who: deployment.pluginRepoFactory,
+            condition: address(0),
+            permissionId: keccak256("REGISTER_PLUGIN_REPO_PERMISSION")
+        });
+        newPermissions[3] = PermissionLib.MultiTargetPermission({
+            operation: PermissionLib.Operation.Grant,
+            where: deployment.pluginRepoRegistry,
+            who: address(newPluginRepoFactory),
+            condition: address(0),
+            permissionId: keccak256("REGISTER_PLUGIN_REPO_PERMISSION")
+        });
+        actionData = abi.encodeCall(
+            PermissionManager.applyMultiTargetPermissions,
+            (newPermissions)
+        );
+        actions[1] = Action({
+            to: deployment.managementDao,
+            value: 0,
+            data: actionData
+        });
+
+        // PROPOSAL
+
+        vm.prank(alice);
+        proposalId = multisig.createProposal(
+            bytes("ipfs://prop-new-permissions"),
+            actions,
+            0, // startdate
+            uint64(block.timestamp + 100), // enddate
+            bytes("")
+        );
+        // Move 1 block forward to avoid missing the snapshot block
+        vm.roll(block.number + 1);
+
+        // Approve
+        vm.prank(alice);
+        multisig.approve(proposalId, false);
+        vm.prank(bob);
+        multisig.approve(proposalId, false);
+
+        // Before
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                deployment.daoFactory,
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                deployment.pluginRepoFactory,
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                address(newDaoFactory),
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                address(newPluginRepoFactory),
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+
+        // Execute
+        vm.prank(carol);
+        multisig.execute(proposalId);
+
+        // After
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                deployment.daoFactory,
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                deployment.pluginRepoFactory,
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                address(newDaoFactory),
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                address(newPluginRepoFactory),
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+
+        // Upgrade the registries
+        // Upgrade the DaoRegistry to the new implementation
+        // Upgrade the PluginRepoRegistry to the new implementation
+
+        // Upgrade the Managing DAO
+        // Upgrade the management DAO to the new implementation
+    }
+
     // Helpers
 
     function _getImplementation(address proxy) private view returns (address) {
