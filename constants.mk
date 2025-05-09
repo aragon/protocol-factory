@@ -1,6 +1,6 @@
 # Grouping networks based on the block explorer they use
 
-ETHERSCAN_NETWORKS := mainnet sepolia holesky
+ETHERSCAN_NETWORKS := mainnet sepolia holesky optimism
 BLOCKSCOUT_NETWORKS := mode
 SOURCIFY_NETWORKS := monadTestnet
 

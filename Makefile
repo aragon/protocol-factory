@@ -174,8 +174,8 @@ refund: ## Refund the remaining balance left on the deployment account
 		echo "- The refund address is empty" ; \
 		exit 1; \
 	fi
-	@BALANCE=$(shell cast balance $(DEPLOYMENT_ADDRESS) --rpc-url $(PRODNET_RPC_URL)) && \
-		GAS_PRICE=$(shell cast gas-price --rpc-url $(PRODNET_RPC_URL)) && \
+	@BALANCE=$(shell cast balance $(DEPLOYMENT_ADDRESS) --rpc-url $(RPC_URL)) && \
+		GAS_PRICE=$(shell cast gas-price --rpc-url $(RPC_URL)) && \
 		REMAINING=$$(echo "$$BALANCE - $$GAS_PRICE * 21000" | bc) && \
 		\
 		ENOUGH_BALANCE=$$(echo "$$REMAINING > 0" | bc) && \
@@ -189,6 +189,6 @@ refund: ## Refund the remaining balance left on the deployment account
 		if [ "$$CONFIRM" != "y" ]; then echo "Aborting" ; exit 1; fi ; \
 		\
 		cast send --private-key $(DEPLOYMENT_PRIVATE_KEY) \
-			--rpc-url $(PRODNET_RPC_URL) \
+			--rpc-url $(RPC_URL) \
 			--value $$REMAINING \
 			$(REFUND_ADDRESS)

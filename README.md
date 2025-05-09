@@ -72,8 +72,9 @@ Check the available make targets to simulate and deploy the smart contracts:
   - [ ] I have run `make init`
 - [ ] I am opening an editor on the `/deployment` folder, within the Docker container
 - [ ] The `.env` file contains the correct parameters for the deployment
-  - [ ] I have created a brand new burner wallet with `cast wallet new` and copied the private key to `DEPLOYMENT_PRIVATE_KEY` within `.env`
+  - [ ] I have created a new burner wallet with `cast wallet new` and copied the private key to `DEPLOYMENT_PRIVATE_KEY` within `.env`
   - [ ] I have set the correct `RPC_URL` for the network
+  - [ ] The value of `NETWORK_NAME` is listed within `constants.mk`
   - [ ] I have set `ETHERSCAN_API_KEY` (if relevant to the target network)
   - [ ] I have printed the contents of `.env` on the screen
   - [ ] I am the only person of the ceremony that will operate the deployment wallet
