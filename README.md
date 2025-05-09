@@ -81,6 +81,9 @@ Check the available make targets to simulate and deploy the smart contracts:
 - My computer:
   - [ ] Is running in a safe location and using a trusted network
   - [ ] It exposes no services or ports
+    - MacOS: `sudo lsof -iTCP -sTCP:LISTEN -nP`
+    - Linux: `sudo ss -tlpn`
+    - Windows: `netstat -ano -p tcp`
   - [ ] The wifi or wired network in use does not expose any ports to a WAN
 - [ ] I have run `make predeploy` and the simulation completes with no errors
 - [ ] The deployment wallet has sufficient native token for gas
