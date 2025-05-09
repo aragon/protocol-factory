@@ -47,6 +47,8 @@ import {MultisigSetup} from "@aragon/multisig-plugin/MultisigSetup.sol";
 import {TokenVotingSetup} from "@aragon/token-voting-plugin/TokenVotingSetup.sol";
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
 import {GovernanceERC20} from "@aragon/token-voting-plugin/ERC20/governance/GovernanceERC20.sol";
+import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/ERC20/governance/GovernanceWrappedERC20.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 contract ProtocolFactoryTest is AragonTest {
     ProtocolFactoryBuilder builder;
@@ -1822,96 +1824,8 @@ contract ProtocolFactoryTest is AragonTest {
         // It The new protocol contracts point to the new implementations
         // It The upgrade proposal succeeds
 
-        // Build a parallel deployment, manually
-        builder = new ProtocolFactoryBuilder();
-        ProtocolFactory factoryParallel = builder.build();
-        factoryParallel.deployOnce();
-        ProtocolFactory.Deployment memory deploymentParallel = factoryParallel
-            .getDeployment();
-        ProtocolFactory.DeploymentParameters memory deploymentParametersParallel = builder
-            .getDeploymentParams();
-
         DAO managementDao = DAO(payable(deployment.managementDao));
         Multisig multisig = Multisig(deployment.managementDaoMultisig);
-
-        // 1) NEW PLUGIN VERSIONS
-        Action[] memory actions = new Action[](4);
-        // Publish new plugin versions
-        actions[0] = Action({
-            to: deployment.adminPluginRepo,
-            value: 0,
-            data: abi.encodeCall(
-                PluginRepo.createVersion,
-                (
-                    1, // target release
-                    address(deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup),
-                    bytes("ipfs://new-build"),
-                    bytes("ipfs://new-release")
-                )
-            )
-        });
-        actions[1] = Action({
-            to: deployment.multisigPluginRepo,
-            value: 0,
-            data: abi.encodeCall(
-                PluginRepo.createVersion,
-                (
-                    1, // target release
-                    address(deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup),
-                    bytes("ipfs://new-build"),
-                    bytes("ipfs://new-release")
-                )
-            )
-        });
-        actions[2] = Action({
-            to: deployment.tokenVotingPluginRepo,
-            value: 0,
-            data: abi.encodeCall(
-                PluginRepo.createVersion,
-                (
-                    1, // target release
-                    address(deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup),
-                    bytes("ipfs://new-build"),
-                    bytes("ipfs://new-release")
-                )
-            )
-        });
-        actions[3] = Action({
-            to: deployment.stagedProposalProcessorPluginRepo,
-            value: 0,
-            data: abi.encodeCall(
-                PluginRepo.createVersion,
-                (
-                    1, // target release
-                    address(deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup),
-                    bytes("ipfs://new-build"),
-                    bytes("ipfs://new-release")
-                )
-            )
-        });
-
-        // Move 1 block forward to avoid ProposalCreationForbidden()
-        vm.roll(block.number + 1);
-
-        // PROPOSAL
-
-        vm.prank(alice);
-        uint256 proposalId = multisig.createProposal(
-            bytes("ipfs://prop-new-plugin-versions"),
-            actions,
-            0, // startdate
-            uint64(block.timestamp + 100), // enddate
-            bytes("")
-        );
-        // Move 1 block forward to avoid missing the snapshot block
-        vm.roll(block.number + 1);
-
-        // Approve
-        vm.prank(alice);
-        multisig.approve(proposalId, false);
-        vm.prank(bob);
-        multisig.approve(proposalId, false);
-
         PluginRepo adminRepo = PluginRepo(deployment.adminPluginRepo);
         PluginRepo multisigRepo = PluginRepo(deployment.multisigPluginRepo);
         PluginRepo tokenVotingRepo = PluginRepo(
@@ -1921,62 +1835,77 @@ contract ProtocolFactoryTest is AragonTest {
             deployment.stagedProposalProcessorPluginRepo
         );
 
-        // Before
-        assertNotEq(
-            adminRepo.getLatestVersion(1).pluginSetup,
-            address(deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup),
-            "Should not be the new version"
-        );
-        assertNotEq(
-            multisigRepo.getLatestVersion(1).pluginSetup,
-            address(deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup),
-            "Should not be the new version"
-        );
-        assertNotEq(
-            tokenVotingRepo.getLatestVersion(1).pluginSetup,
-            address(deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup),
-            "Should not be the new version"
-        );
-        assertNotEq(
-            sppRepo.getLatestVersion(1).pluginSetup,
-            address(deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup),
-            "Should not be the new version"
-        );
-
-        // Execute
-        vm.prank(carol);
-        multisig.execute(proposalId);
-
-        // After
-        assertEq(
-            adminRepo.getLatestVersion(1).pluginSetup,
-            address(deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup),
-            "Should be the new version"
-        );
-        assertEq(
-            multisigRepo.getLatestVersion(1).pluginSetup,
-            address(deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup),
-            "Should be the new version"
-        );
-        assertEq(
-            tokenVotingRepo.getLatestVersion(1).pluginSetup,
-            address(deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup),
-            "Should be the new version"
-        );
-        assertEq(
-            sppRepo.getLatestVersion(1).pluginSetup,
-            address(deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup),
-            "Should be the new version"
-        );
+        // 1) NEW PLUGIN VERSIONS
+        Action[] memory actions = new Action[](8);
+        
+        address newAdminSetup = address(new AdminSetup());
+        actions[0] = Action({
+            to: deployment.adminPluginRepo,
+            value: 0,
+            data: abi.encodeCall(
+                PluginRepo.createVersion,
+                (
+                    1, // target release
+                    newAdminSetup,
+                    bytes("ipfs://new-build"),
+                    bytes("ipfs://new-release")
+                )
+            )
+        });
+        address newMultisigSetup = address(new MultisigSetup());
+        actions[1] = Action({
+            to: deployment.multisigPluginRepo,
+            value: 0,
+            data: abi.encodeCall(
+                PluginRepo.createVersion,
+                (
+                    1, // target release
+                    newMultisigSetup,
+                    bytes("ipfs://new-build"),
+                    bytes("ipfs://new-release")
+                )
+            )
+        });
+        address newTokenVotingSetup = address(new TokenVotingSetup(
+            new GovernanceERC20(
+                IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
+            ),
+            new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
+        ));
+        actions[2] = Action({
+            to: deployment.tokenVotingPluginRepo,
+            value: 0,
+            data: abi.encodeCall(
+                PluginRepo.createVersion,
+                (
+                    1, // target release
+                    newTokenVotingSetup,
+                    bytes("ipfs://new-build"),
+                    bytes("ipfs://new-release")
+                )
+            )
+        });
+        address newSppSetup = address(new StagedProposalProcessorSetup());
+        actions[3] = Action({
+            to: deployment.stagedProposalProcessorPluginRepo,
+            value: 0,
+            data: abi.encodeCall(
+                PluginRepo.createVersion,
+                (
+                    1, // target release
+                    newSppSetup,
+                    bytes("ipfs://new-build"),
+                    bytes("ipfs://new-release")
+                )
+            )
+        });
 
         // 2) REGISTRY PERMISSIONS
 
-        DAOFactory newDaoFactory = DAOFactory(deploymentParallel.daoFactory);
-        PluginRepoFactory newPluginRepoFactory = PluginRepoFactory(
-            deploymentParallel.pluginRepoFactory
+        DAOFactory newDaoFactory = new DAOFactory(DAORegistry(deployment.daoRegistry), PluginSetupProcessor(deployment.pluginSetupProcessor));
+        PluginRepoFactory newPluginRepoFactory = new PluginRepoFactory(
+            PluginRepoRegistry(deployment.pluginRepoRegistry)
         );
-
-        actions = new Action[](1);
 
         // Move the REGISTER_DAO_PERMISSION_ID permission on the DAORegistry from the old DAOFactory to the new one
         PermissionLib.MultiTargetPermission[]
@@ -2013,7 +1942,7 @@ contract ProtocolFactoryTest is AragonTest {
             condition: address(0),
             permissionId: keccak256("REGISTER_PLUGIN_REPO_PERMISSION")
         });
-        actions[0] = Action({
+        actions[4] = Action({
             to: deployment.managementDao,
             value: 0,
             data: abi.encodeCall(
@@ -2022,195 +1951,126 @@ contract ProtocolFactoryTest is AragonTest {
             )
         });
 
-        // PROPOSAL
-
-        vm.prank(alice);
-        proposalId = multisig.createProposal(
-            bytes("ipfs://prop-new-permissions"),
-            actions,
-            0, // startdate
-            uint64(block.timestamp + 100), // enddate
-            bytes("")
-        );
-        // Move 1 block forward to avoid missing the snapshot block
-        vm.roll(block.number + 1);
-
-        // Approve
-        vm.prank(alice);
-        multisig.approve(proposalId, false);
-        vm.prank(bob);
-        multisig.approve(proposalId, false);
-
-        // Before
-        assertTrue(
-            managementDao.hasPermission(
-                deployment.daoRegistry,
-                deployment.daoFactory,
-                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
-                ""
-            ),
-            "Should have REGISTER_DAO_PERMISSION_ID"
-        );
-        assertTrue(
-            managementDao.hasPermission(
-                deployment.pluginRepoRegistry,
-                deployment.pluginRepoFactory,
-                PluginRepoRegistry(deployment.pluginRepoRegistry)
-                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
-                ""
-            ),
-            "Should have REGISTER_PLUGIN_REPO_PERMISSION_ID"
-        );
-        assertFalse(
-            managementDao.hasPermission(
-                deployment.daoRegistry,
-                address(newDaoFactory),
-                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
-                ""
-            ),
-            "Should not have REGISTER_DAO_PERMISSION_ID"
-        );
-        assertFalse(
-            managementDao.hasPermission(
-                deployment.pluginRepoRegistry,
-                address(newPluginRepoFactory),
-                PluginRepoRegistry(deployment.pluginRepoRegistry)
-                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
-                ""
-            ),
-            "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
-        );
-
-        // Execute
-        vm.prank(carol);
-        multisig.execute(proposalId);
-
-        // After
-        assertFalse(
-            managementDao.hasPermission(
-                deployment.daoRegistry,
-                deployment.daoFactory,
-                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
-                ""
-            ),
-            "Should not have REGISTER_DAO_PERMISSION_ID"
-        );
-        assertFalse(
-            managementDao.hasPermission(
-                deployment.pluginRepoRegistry,
-                deployment.pluginRepoFactory,
-                PluginRepoRegistry(deployment.pluginRepoRegistry)
-                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
-                ""
-            ),
-            "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
-        );
-        assertTrue(
-            managementDao.hasPermission(
-                deployment.daoRegistry,
-                address(newDaoFactory),
-                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
-                ""
-            ),
-            "Should have REGISTER_DAO_PERMISSION_ID"
-        );
-        assertTrue(
-            managementDao.hasPermission(
-                deployment.pluginRepoRegistry,
-                address(newPluginRepoFactory),
-                PluginRepoRegistry(deployment.pluginRepoRegistry)
-                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
-                ""
-            ),
-            "Should have REGISTER_PLUGIN_REPO_PERMISSION_ID"
-        );
-
         // 3) REGISTRY IMPLEMENTATIONS
 
-        actions = new Action[](2);
-
         // Upgrade the DaoRegistry to the new implementation
-        actions[0] = Action({
+        address newDaoRegistryBase = address(new DAORegistry());
+        actions[5] = Action({
             to: deployment.daoRegistry,
             value: 0,
             data: abi.encodeCall(
                 UUPSUpgradeable.upgradeTo,
-                (_getImplementation(deploymentParallel.daoRegistry))
+                (newDaoRegistryBase)
             )
         });
         // Upgrade the PluginRepoRegistry to the new implementation
-        actions[1] = Action({
+        address newPluginRepoRegistryBase = address(new PluginRepoRegistry());
+        actions[6] = Action({
             to: deployment.pluginRepoRegistry,
             value: 0,
             data: abi.encodeCall(
                 UUPSUpgradeable.upgradeTo,
-                (_getImplementation(deploymentParallel.pluginRepoRegistry))
+                (newPluginRepoRegistryBase)
             )
         });
         
-        // PROPOSAL
-
-        vm.prank(alice);
-        proposalId = multisig.createProposal(
-            bytes("ipfs://prop-new-registry-impl"),
-            actions,
-            0, // startdate
-            uint64(block.timestamp + 100), // enddate
-            bytes("")
-        );
-        // Move 1 block forward to avoid missing the snapshot block
-        vm.roll(block.number + 1);
-
-        // Approve
-        vm.prank(alice);
-        multisig.approve(proposalId, false);
-        vm.prank(bob);
-        multisig.approve(proposalId, false);
-
-        // Before
-        assertNotEq(
-          _getImplementation(deployment.daoRegistry),
-          _getImplementation(deploymentParallel.daoRegistry),
-          "Should not have the new implementation"
-        );
-        assertNotEq(
-          _getImplementation(deployment.pluginRepoRegistry),
-          _getImplementation(deploymentParallel.pluginRepoRegistry),
-          "Should not have the new implementation"
-        );
-
-        // Execute
-        vm.prank(carol);
-        multisig.execute(proposalId);
-
-        // After
-        assertEq(
-          _getImplementation(deployment.daoRegistry),
-          _getImplementation(deploymentParallel.daoRegistry),
-          "Should have the new implementation"
-        );
-        assertEq(
-          _getImplementation(deployment.pluginRepoRegistry),
-          _getImplementation(deploymentParallel.pluginRepoRegistry),
-          "Should have the new implementation"
-        );
-
         // 4) MANAGING DAO IMPLEMENTATION
-        
 
-        actions = new Action[](1);
-
-        // Upgrade the management DAO to the new implementation
-        actions[0] = Action({
+        // Upgrade the management DAO to a new implementation
+        address newDaoBase = address(payable(new DAO()));
+        actions[7] = Action({
             to: deployment.managementDao,
             value: 0,
-            data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (_getImplementation(deploymentParallel.managementDao)))
+            data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (newDaoBase))
         });
         
+        // Before (plugin setup's)
+        assertNotEq(
+            adminRepo.getLatestVersion(1).pluginSetup,
+            newAdminSetup,
+            "Should not be the new version"
+        );
+        assertNotEq(
+            multisigRepo.getLatestVersion(1).pluginSetup,
+            newMultisigSetup,
+            "Should not be the new version"
+        );
+        assertNotEq(
+            tokenVotingRepo.getLatestVersion(1).pluginSetup,
+            newTokenVotingSetup,
+            "Should not be the new version"
+        );
+        assertNotEq(
+            sppRepo.getLatestVersion(1).pluginSetup,
+            newSppSetup,
+            "Should not be the new version"
+        );
+        
+        // Before (registry permissions)
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                deployment.daoFactory,
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                deployment.pluginRepoFactory,
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                address(newDaoFactory),
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                address(newPluginRepoFactory),
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+        
+        // Before (registry implementations)
+        assertNotEq(
+          _getImplementation(deployment.daoRegistry),
+          newDaoRegistryBase,
+          "Should not have the new implementation"
+        );
+        assertNotEq(
+          _getImplementation(deployment.pluginRepoRegistry),
+          newPluginRepoRegistryBase,
+          "Should not have the new implementation"
+        );
+        
+        // Before (Management DAO implementation)
+        assertNotEq(
+          _getImplementation(deployment.managementDao),
+          newDaoBase,
+          "Should not have the new implementation"
+        );
+
         // PROPOSAL
+        // 1 block forward for the multisig settings to be effective
+        vm.roll(block.number + 1);
 
         vm.prank(alice);
-        proposalId = multisig.createProposal(
+        uint256 proposalId = multisig.createProposal(
             bytes("ipfs://prop-new-mgmt-dao-impl"),
             actions,
             0, // startdate
@@ -2220,31 +2080,240 @@ contract ProtocolFactoryTest is AragonTest {
         // Move 1 block forward to avoid missing the snapshot block
         vm.roll(block.number + 1);
 
-        // Approve
         vm.prank(alice);
         multisig.approve(proposalId, false);
         vm.prank(bob);
         multisig.approve(proposalId, false);
-
-        // Before
-        assertNotEq(
-          _getImplementation(deployment.managementDao),
-          _getImplementation(deploymentParallel.managementDao),
-          "Should not have the new implementation"
-        );
-
-        // Execute
         vm.prank(carol);
         multisig.execute(proposalId);
 
-        // After
+        // After (plugin setup's)
         assertEq(
-          _getImplementation(deployment.managementDao),
-          _getImplementation(deploymentParallel.managementDao),
+            adminRepo.getLatestVersion(1).pluginSetup,
+            newAdminSetup,
+            "Should be the new version"
+        );
+        assertEq(
+            multisigRepo.getLatestVersion(1).pluginSetup,
+            newMultisigSetup,
+            "Should be the new version"
+        );
+        assertEq(
+            tokenVotingRepo.getLatestVersion(1).pluginSetup,
+            newTokenVotingSetup,
+            "Should be the new version"
+        );
+        assertEq(
+            sppRepo.getLatestVersion(1).pluginSetup,
+            newSppSetup,
+            "Should be the new version"
+        );
+        
+        // After (registry permissions)
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                deployment.daoFactory,
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertFalse(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                deployment.pluginRepoFactory,
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.daoRegistry,
+                address(newDaoFactory),
+                DAORegistry(deployment.daoRegistry).REGISTER_DAO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_DAO_PERMISSION_ID"
+        );
+        assertTrue(
+            managementDao.hasPermission(
+                deployment.pluginRepoRegistry,
+                address(newPluginRepoFactory),
+                PluginRepoRegistry(deployment.pluginRepoRegistry)
+                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                ""
+            ),
+            "Should have REGISTER_PLUGIN_REPO_PERMISSION_ID"
+        );
+
+        // After (registry implementations)
+        assertEq(
+          _getImplementation(deployment.daoRegistry),
+          newDaoRegistryBase,
+          "Should have the new implementation"
+        );
+        assertEq(
+          _getImplementation(deployment.pluginRepoRegistry),
+          newPluginRepoRegistryBase,
           "Should have the new implementation"
         );
 
-        // CREATING AND USING A NEW DAO (E2E)
+        // After (Management DAO implementation)
+        assertEq(
+          _getImplementation(deployment.managementDao),
+          newDaoBase,
+          "Should have the new implementation"
+        );
+        
+        // 5) CREATING A NEW DAO
+        // END TO END: Replicating from test_WhenUsingTheDAOFactory above
+
+        // Use the new factory
+        DAORegistry daoRegistry = DAORegistry(deployment.daoRegistry);
+        ENS ens = ENS(deployment.ensRegistry);
+        IResolver resolver = IResolver(deployment.publicResolver);
+
+        string memory daoSubdomain = "testdao";
+        string memory metadataUri = "ipfs://dao-meta";
+        DAOFactory.DAOSettings memory daoSettings = DAOFactory.DAOSettings({
+            trustedForwarder: address(0),
+            daoURI: "ipfs://dao-uri",
+            metadata: bytes(metadataUri),
+            subdomain: daoSubdomain
+        });
+        DAOFactory.PluginSettings[] memory plugins = new DAOFactory.PluginSettings[](0);
+
+        // It Should deploy a valid DAO and register it
+        (DAO newDao,) = newDaoFactory.createDao(daoSettings, plugins);
+        assertNotEq(address(newDao), address(0), "DAO address is zero");
+        assertTrue(daoRegistry.entries(address(newDao)), "DAO not registered in registry");
+
+        // It New DAOs should have the right permissions on themselves
+        // By default, DAOFactory grants ROOT to the DAO itself
+        assertTrue(
+            newDao.hasPermission(address(newDao), address(newDao), newDao.ROOT_PERMISSION_ID(), ""),
+            "DAO does not have ROOT on itself"
+        );
+
+        // It New DAOs should be resolved from the requested ENS subdomain
+        string memory fullDomain =
+            string.concat(daoSubdomain, ".", deploymentParams.ensParameters.daoRootDomain, ".eth");
+        bytes32 node = vm.ensNamehash(fullDomain);
+
+        assertEq(ens.owner(node), deployment.daoSubdomainRegistrar, "ENS owner mismatch");
+        assertEq(ens.resolver(node), deployment.publicResolver, "ENS resolver mismatch");
+        assertEq(resolver.addr(node), address(newDao), "Resolver addr mismatch");
+        
+        // 6) CREATING A NEW PLUGIN
+        // END TO END: Replicating from test_WhenUsingThePluginRepoFactory above
+
+        PluginRepoRegistry repoRegistry = PluginRepoRegistry(deployment.pluginRepoRegistry);
+
+        string memory repoSubdomain = "testplugin";
+        address maintainer = alice; // Let Alice be the maintainer
+
+        // It Should deploy a valid PluginRepo and register it
+        address newRepoAddress = address(newPluginRepoFactory.createPluginRepo(repoSubdomain, maintainer));
+        assertTrue(newRepoAddress != address(0), "Repo address is zero");
+        assertTrue(repoRegistry.entries(newRepoAddress), "Repo not registered in registry");
+
+        PluginRepo newRepo = PluginRepo(newRepoAddress);
+        assertTrue(
+            newRepo.isGranted(newRepoAddress, maintainer, newRepo.MAINTAINER_PERMISSION_ID(), ""),
+            "Maintainer does not have MAINTAINER_PERMISSION on the plugin repo"
+        );
+
+        // It The maintainer can publish new versions
+        DummySetup dummySetup = new DummySetup();
+        vm.prank(maintainer);
+        newRepo.createVersion(1, address(dummySetup), bytes("ipfs://build"), bytes("ipfs://release"));
+        PluginRepo.Version memory latestVersion = newRepo.getLatestVersion(1);
+        assertEq(latestVersion.pluginSetup, address(dummySetup), "Published version mismatch");
+
+        // It The plugin repo should be resolved from the requested ENS subdomain
+        fullDomain = string.concat(
+            repoSubdomain,
+            ".",
+            deploymentParams.ensParameters.pluginSubdomain,
+            ".",
+            deploymentParams.ensParameters.daoRootDomain,
+            ".eth"
+        );
+        node = vm.ensNamehash(fullDomain);
+
+        assertEq(ens.owner(node), deployment.pluginSubdomainRegistrar, "ENS owner mismatch");
+        assertEq(ens.resolver(node), deployment.publicResolver, "ENS resolver mismatch");
+        assertEq(resolver.addr(node), newRepoAddress, "Resolver addr mismatch");
+        
+        // 7) USING A NEW DAO WITH AN UPDATED PLUGIN
+        // END TO END: Replicating from test_WhenApplyingAMultisigPluginInstallation above
+        
+        // Overriding the deployment addresses with the new factories
+        deployment.daoFactory = address(newDaoFactory);
+        deployment.pluginRepoFactory = address(newPluginRepoFactory);
+
+        DAO targetDao = _createTestDao("dao-with-multisig", deployment);
+        PluginSetupRef memory pluginSetupRef = PluginSetupRef(
+            PluginRepo.Tag(
+                deploymentParams.corePlugins.multisigPlugin.release,
+                deploymentParams.corePlugins.multisigPlugin.build + 1 // new version
+            ),
+            PluginRepo(deployment.multisigPluginRepo)
+        );
+        IPlugin.TargetConfig memory targetConfig =
+            IPlugin.TargetConfig({target: address(targetDao), operation: IPlugin.Operation.Call});
+
+        address[] memory members = new address[](3);
+        members[0] = bob;
+        members[1] = carol;
+        members[2] = david;
+        bytes memory setupData = abi.encode(
+            members,
+            Multisig.MultisigSettings({onlyListed: true, minApprovals: 2}),
+            targetConfig,
+            bytes("") // metadata
+        );
+
+        address pluginAddress = _installPlugin(targetDao, pluginSetupRef, setupData);
+        Multisig multisigPlugin = Multisig(pluginAddress);
+
+        // Allow this script to create proposals on the plugin
+        actions = new Action[](1);
+        actions[0] = Action({
+            to: address(targetDao),
+            value: 0,
+            data: abi.encodeCall(
+                PermissionManager.grant, (pluginAddress, address(this), multisigPlugin.CREATE_PROPOSAL_PERMISSION_ID())
+            )
+        });
+        targetDao.execute(bytes32(0), actions, 0);
+
+        // Try to change the DAO URI via proposal
+        string memory newDaoUri = "https://new-uri";
+        assertNotEq(targetDao.daoURI(), newDaoUri, "Should not have the new value yet");
+        bytes memory executeCalldata = abi.encodeCall(DAO.setDaoURI, (newDaoUri));
+
+        actions[0] = Action({to: address(targetDao), value: 0, data: executeCalldata});
+
+        // Create proposal
+        vm.roll(block.number + 1);
+        proposalId = multisigPlugin.createProposal(
+            "ipfs://proposal-meta", actions, 0, uint64(block.timestamp + 20000), bytes("")
+        );
+
+        vm.prank(bob);
+        multisigPlugin.approve(proposalId, false);
+        vm.prank(carol);
+        multisigPlugin.approve(proposalId, false);
+        assertTrue(multisigPlugin.canExecute(proposalId));
+        vm.prank(david);
+        multisigPlugin.execute(proposalId);
+
+        // Verify execution
+        assertEq(targetDao.daoURI(), newDaoUri, "Execution failed");
     }
 
     // Helpers
