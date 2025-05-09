@@ -12,7 +12,11 @@ import {DAORegistry} from "@aragon/osx/framework/dao/DAORegistry.sol";
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
 import {PluginRepoRegistry} from "@aragon/osx/framework/plugin/repo/PluginRepoRegistry.sol";
 import {PluginRepoFactory} from "@aragon/osx/framework/plugin/repo/PluginRepoFactory.sol";
-import {PluginSetupProcessor, PluginSetupRef, hashHelpers} from "@aragon/osx/framework/plugin/setup/PluginSetupProcessor.sol";
+import {
+    PluginSetupProcessor,
+    PluginSetupRef,
+    hashHelpers
+} from "@aragon/osx/framework/plugin/setup/PluginSetupProcessor.sol";
 import {PlaceholderSetup} from "@aragon/osx/framework/plugin/repo/placeholder/PlaceholderSetup.sol";
 import {ENSSubdomainRegistrar} from "@aragon/osx/framework/utils/ens/ENSSubdomainRegistrar.sol";
 import {Executor as GlobalExecutor} from "@aragon/osx-commons-contracts/src/executors/Executor.sol";
@@ -67,12 +71,8 @@ contract TestUpgradeScript is Script {
         PluginRepo tokenVotingRepo = PluginRepo(address(0x0));
         PluginRepo sppRepo = PluginRepo(address(0x0));
         DAORegistry daoRegistry = DAORegistry(address(0x0));
-        PluginRepoRegistry pluginRepoRegistry = PluginRepoRegistry(
-            address(0x0)
-        );
-        PluginSetupProcessor pluginSetupProcessor = PluginSetupProcessor(
-            address(0x0)
-        );
+        PluginRepoRegistry pluginRepoRegistry = PluginRepoRegistry(address(0x0));
+        PluginSetupProcessor pluginSetupProcessor = PluginSetupProcessor(address(0x0));
         DAOFactory daoFactory = DAOFactory(address(0x0));
         PluginRepoFactory pluginRepoFactory = PluginRepoFactory(address(0x0));
 
@@ -110,19 +110,9 @@ contract TestUpgradeScript is Script {
         address newTokenVotingSetup = address(
             new TokenVotingSetup(
                 new GovernanceERC20(
-                    IDAO(address(0)),
-                    "",
-                    "",
-                    GovernanceERC20.MintSettings(
-                        new address[](0),
-                        new uint256[](0)
-                    )
+                    IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
                 ),
-                new GovernanceWrappedERC20(
-                    IERC20Upgradeable(address(0)),
-                    "",
-                    ""
-                )
+                new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
             )
         );
         actions[2] = Action({
@@ -155,19 +145,11 @@ contract TestUpgradeScript is Script {
 
         // 2) REGISTRY PERMISSIONS
 
-        DAOFactory newDaoFactory = new DAOFactory(
-            daoRegistry,
-            pluginSetupProcessor
-        );
-        PluginRepoFactory newPluginRepoFactory = new PluginRepoFactory(
-            pluginRepoRegistry
-        );
+        DAOFactory newDaoFactory = new DAOFactory(daoRegistry, pluginSetupProcessor);
+        PluginRepoFactory newPluginRepoFactory = new PluginRepoFactory(pluginRepoRegistry);
 
         // Move the REGISTER_DAO_PERMISSION_ID permission on the DAORegistry from the old DAOFactory to the new one
-        PermissionLib.MultiTargetPermission[]
-            memory newPermissions = new PermissionLib.MultiTargetPermission[](
-                4
-            );
+        PermissionLib.MultiTargetPermission[] memory newPermissions = new PermissionLib.MultiTargetPermission[](4);
         newPermissions[0] = PermissionLib.MultiTargetPermission({
             operation: PermissionLib.Operation.Revoke,
             where: address(daoRegistry),
@@ -201,10 +183,7 @@ contract TestUpgradeScript is Script {
         actions[4] = Action({
             to: address(managementDao),
             value: 0,
-            data: abi.encodeCall(
-                PermissionManager.applyMultiTargetPermissions,
-                (newPermissions)
-            )
+            data: abi.encodeCall(PermissionManager.applyMultiTargetPermissions, (newPermissions))
         });
 
         // 3) REGISTRY IMPLEMENTATIONS
@@ -214,20 +193,14 @@ contract TestUpgradeScript is Script {
         actions[5] = Action({
             to: address(daoRegistry),
             value: 0,
-            data: abi.encodeCall(
-                UUPSUpgradeable.upgradeTo,
-                (newDaoRegistryBase)
-            )
+            data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (newDaoRegistryBase))
         });
         // Upgrade the PluginRepoRegistry to the new implementation
         address newPluginRepoRegistryBase = address(new PluginRepoRegistry());
         actions[6] = Action({
             to: address(pluginRepoRegistry),
             value: 0,
-            data: abi.encodeCall(
-                UUPSUpgradeable.upgradeTo,
-                (newPluginRepoRegistryBase)
-            )
+            data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (newPluginRepoRegistryBase))
         });
 
         // 4) MANAGING DAO IMPLEMENTATION
@@ -271,10 +244,7 @@ contract TestUpgradeScript is Script {
 
         console.log("Protocol helpers:");
         console.log("- Management DAO", address(managementDao));
-        console.log(
-            "- Management DAO multisig",
-            address(managementDaoMultisig)
-        );
+        console.log("- Management DAO multisig", address(managementDaoMultisig));
         console.log();
 
         console.log("Plugin setup's:");

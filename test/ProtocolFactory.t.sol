@@ -1828,16 +1828,12 @@ contract ProtocolFactoryTest is AragonTest {
         Multisig multisig = Multisig(deployment.managementDaoMultisig);
         PluginRepo adminRepo = PluginRepo(deployment.adminPluginRepo);
         PluginRepo multisigRepo = PluginRepo(deployment.multisigPluginRepo);
-        PluginRepo tokenVotingRepo = PluginRepo(
-            deployment.tokenVotingPluginRepo
-        );
-        PluginRepo sppRepo = PluginRepo(
-            deployment.stagedProposalProcessorPluginRepo
-        );
+        PluginRepo tokenVotingRepo = PluginRepo(deployment.tokenVotingPluginRepo);
+        PluginRepo sppRepo = PluginRepo(deployment.stagedProposalProcessorPluginRepo);
 
         // 1) NEW PLUGIN VERSIONS
         Action[] memory actions = new Action[](8);
-        
+
         address newAdminSetup = address(new AdminSetup());
         actions[0] = Action({
             to: deployment.adminPluginRepo,
@@ -1866,12 +1862,14 @@ contract ProtocolFactoryTest is AragonTest {
                 )
             )
         });
-        address newTokenVotingSetup = address(new TokenVotingSetup(
-            new GovernanceERC20(
-                IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
-            ),
-            new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
-        ));
+        address newTokenVotingSetup = address(
+            new TokenVotingSetup(
+                new GovernanceERC20(
+                    IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
+                ),
+                new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
+            )
+        );
         actions[2] = Action({
             to: deployment.tokenVotingPluginRepo,
             value: 0,
@@ -1902,16 +1900,13 @@ contract ProtocolFactoryTest is AragonTest {
 
         // 2) REGISTRY PERMISSIONS
 
-        DAOFactory newDaoFactory = new DAOFactory(DAORegistry(deployment.daoRegistry), PluginSetupProcessor(deployment.pluginSetupProcessor));
-        PluginRepoFactory newPluginRepoFactory = new PluginRepoFactory(
-            PluginRepoRegistry(deployment.pluginRepoRegistry)
-        );
+        DAOFactory newDaoFactory =
+            new DAOFactory(DAORegistry(deployment.daoRegistry), PluginSetupProcessor(deployment.pluginSetupProcessor));
+        PluginRepoFactory newPluginRepoFactory =
+            new PluginRepoFactory(PluginRepoRegistry(deployment.pluginRepoRegistry));
 
         // Move the REGISTER_DAO_PERMISSION_ID permission on the DAORegistry from the old DAOFactory to the new one
-        PermissionLib.MultiTargetPermission[]
-            memory newPermissions = new PermissionLib.MultiTargetPermission[](
-                4
-            );
+        PermissionLib.MultiTargetPermission[] memory newPermissions = new PermissionLib.MultiTargetPermission[](4);
         newPermissions[0] = PermissionLib.MultiTargetPermission({
             operation: PermissionLib.Operation.Revoke,
             where: deployment.daoRegistry,
@@ -1945,10 +1940,7 @@ contract ProtocolFactoryTest is AragonTest {
         actions[4] = Action({
             to: deployment.managementDao,
             value: 0,
-            data: abi.encodeCall(
-                PermissionManager.applyMultiTargetPermissions,
-                (newPermissions)
-            )
+            data: abi.encodeCall(PermissionManager.applyMultiTargetPermissions, (newPermissions))
         });
 
         // 3) REGISTRY IMPLEMENTATIONS
@@ -1958,22 +1950,16 @@ contract ProtocolFactoryTest is AragonTest {
         actions[5] = Action({
             to: deployment.daoRegistry,
             value: 0,
-            data: abi.encodeCall(
-                UUPSUpgradeable.upgradeTo,
-                (newDaoRegistryBase)
-            )
+            data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (newDaoRegistryBase))
         });
         // Upgrade the PluginRepoRegistry to the new implementation
         address newPluginRepoRegistryBase = address(new PluginRepoRegistry());
         actions[6] = Action({
             to: deployment.pluginRepoRegistry,
             value: 0,
-            data: abi.encodeCall(
-                UUPSUpgradeable.upgradeTo,
-                (newPluginRepoRegistryBase)
-            )
+            data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (newPluginRepoRegistryBase))
         });
-        
+
         // 4) MANAGING DAO IMPLEMENTATION
 
         // Upgrade the management DAO to a new implementation
@@ -1983,29 +1969,15 @@ contract ProtocolFactoryTest is AragonTest {
             value: 0,
             data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (newDaoBase))
         });
-        
+
         // Before (plugin setup's)
+        assertNotEq(adminRepo.getLatestVersion(1).pluginSetup, newAdminSetup, "Should not be the new version");
+        assertNotEq(multisigRepo.getLatestVersion(1).pluginSetup, newMultisigSetup, "Should not be the new version");
         assertNotEq(
-            adminRepo.getLatestVersion(1).pluginSetup,
-            newAdminSetup,
-            "Should not be the new version"
+            tokenVotingRepo.getLatestVersion(1).pluginSetup, newTokenVotingSetup, "Should not be the new version"
         );
-        assertNotEq(
-            multisigRepo.getLatestVersion(1).pluginSetup,
-            newMultisigSetup,
-            "Should not be the new version"
-        );
-        assertNotEq(
-            tokenVotingRepo.getLatestVersion(1).pluginSetup,
-            newTokenVotingSetup,
-            "Should not be the new version"
-        );
-        assertNotEq(
-            sppRepo.getLatestVersion(1).pluginSetup,
-            newSppSetup,
-            "Should not be the new version"
-        );
-        
+        assertNotEq(sppRepo.getLatestVersion(1).pluginSetup, newSppSetup, "Should not be the new version");
+
         // Before (registry permissions)
         assertTrue(
             managementDao.hasPermission(
@@ -2020,8 +1992,7 @@ contract ProtocolFactoryTest is AragonTest {
             managementDao.hasPermission(
                 deployment.pluginRepoRegistry,
                 deployment.pluginRepoFactory,
-                PluginRepoRegistry(deployment.pluginRepoRegistry)
-                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                PluginRepoRegistry(deployment.pluginRepoRegistry).REGISTER_PLUGIN_REPO_PERMISSION_ID(),
                 ""
             ),
             "Should have REGISTER_PLUGIN_REPO_PERMISSION_ID"
@@ -2039,31 +2010,24 @@ contract ProtocolFactoryTest is AragonTest {
             managementDao.hasPermission(
                 deployment.pluginRepoRegistry,
                 address(newPluginRepoFactory),
-                PluginRepoRegistry(deployment.pluginRepoRegistry)
-                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                PluginRepoRegistry(deployment.pluginRepoRegistry).REGISTER_PLUGIN_REPO_PERMISSION_ID(),
                 ""
             ),
             "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
         );
-        
+
         // Before (registry implementations)
         assertNotEq(
-          _getImplementation(deployment.daoRegistry),
-          newDaoRegistryBase,
-          "Should not have the new implementation"
+            _getImplementation(deployment.daoRegistry), newDaoRegistryBase, "Should not have the new implementation"
         );
         assertNotEq(
-          _getImplementation(deployment.pluginRepoRegistry),
-          newPluginRepoRegistryBase,
-          "Should not have the new implementation"
+            _getImplementation(deployment.pluginRepoRegistry),
+            newPluginRepoRegistryBase,
+            "Should not have the new implementation"
         );
-        
+
         // Before (Management DAO implementation)
-        assertNotEq(
-          _getImplementation(deployment.managementDao),
-          newDaoBase,
-          "Should not have the new implementation"
-        );
+        assertNotEq(_getImplementation(deployment.managementDao), newDaoBase, "Should not have the new implementation");
 
         // PROPOSAL
         // 1 block forward for the multisig settings to be effective
@@ -2088,27 +2052,11 @@ contract ProtocolFactoryTest is AragonTest {
         multisig.execute(proposalId);
 
         // After (plugin setup's)
-        assertEq(
-            adminRepo.getLatestVersion(1).pluginSetup,
-            newAdminSetup,
-            "Should be the new version"
-        );
-        assertEq(
-            multisigRepo.getLatestVersion(1).pluginSetup,
-            newMultisigSetup,
-            "Should be the new version"
-        );
-        assertEq(
-            tokenVotingRepo.getLatestVersion(1).pluginSetup,
-            newTokenVotingSetup,
-            "Should be the new version"
-        );
-        assertEq(
-            sppRepo.getLatestVersion(1).pluginSetup,
-            newSppSetup,
-            "Should be the new version"
-        );
-        
+        assertEq(adminRepo.getLatestVersion(1).pluginSetup, newAdminSetup, "Should be the new version");
+        assertEq(multisigRepo.getLatestVersion(1).pluginSetup, newMultisigSetup, "Should be the new version");
+        assertEq(tokenVotingRepo.getLatestVersion(1).pluginSetup, newTokenVotingSetup, "Should be the new version");
+        assertEq(sppRepo.getLatestVersion(1).pluginSetup, newSppSetup, "Should be the new version");
+
         // After (registry permissions)
         assertFalse(
             managementDao.hasPermission(
@@ -2123,8 +2071,7 @@ contract ProtocolFactoryTest is AragonTest {
             managementDao.hasPermission(
                 deployment.pluginRepoRegistry,
                 deployment.pluginRepoFactory,
-                PluginRepoRegistry(deployment.pluginRepoRegistry)
-                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                PluginRepoRegistry(deployment.pluginRepoRegistry).REGISTER_PLUGIN_REPO_PERMISSION_ID(),
                 ""
             ),
             "Should not have REGISTER_PLUGIN_REPO_PERMISSION_ID"
@@ -2142,32 +2089,23 @@ contract ProtocolFactoryTest is AragonTest {
             managementDao.hasPermission(
                 deployment.pluginRepoRegistry,
                 address(newPluginRepoFactory),
-                PluginRepoRegistry(deployment.pluginRepoRegistry)
-                    .REGISTER_PLUGIN_REPO_PERMISSION_ID(),
+                PluginRepoRegistry(deployment.pluginRepoRegistry).REGISTER_PLUGIN_REPO_PERMISSION_ID(),
                 ""
             ),
             "Should have REGISTER_PLUGIN_REPO_PERMISSION_ID"
         );
 
         // After (registry implementations)
+        assertEq(_getImplementation(deployment.daoRegistry), newDaoRegistryBase, "Should have the new implementation");
         assertEq(
-          _getImplementation(deployment.daoRegistry),
-          newDaoRegistryBase,
-          "Should have the new implementation"
-        );
-        assertEq(
-          _getImplementation(deployment.pluginRepoRegistry),
-          newPluginRepoRegistryBase,
-          "Should have the new implementation"
+            _getImplementation(deployment.pluginRepoRegistry),
+            newPluginRepoRegistryBase,
+            "Should have the new implementation"
         );
 
         // After (Management DAO implementation)
-        assertEq(
-          _getImplementation(deployment.managementDao),
-          newDaoBase,
-          "Should have the new implementation"
-        );
-        
+        assertEq(_getImplementation(deployment.managementDao), newDaoBase, "Should have the new implementation");
+
         // 5) CREATING A NEW DAO
         // END TO END: Replicating from test_WhenUsingTheDAOFactory above
 
@@ -2206,7 +2144,7 @@ contract ProtocolFactoryTest is AragonTest {
         assertEq(ens.owner(node), deployment.daoSubdomainRegistrar, "ENS owner mismatch");
         assertEq(ens.resolver(node), deployment.publicResolver, "ENS resolver mismatch");
         assertEq(resolver.addr(node), address(newDao), "Resolver addr mismatch");
-        
+
         // 6) CREATING A NEW PLUGIN
         // END TO END: Replicating from test_WhenUsingThePluginRepoFactory above
 
@@ -2247,10 +2185,10 @@ contract ProtocolFactoryTest is AragonTest {
         assertEq(ens.owner(node), deployment.pluginSubdomainRegistrar, "ENS owner mismatch");
         assertEq(ens.resolver(node), deployment.publicResolver, "ENS resolver mismatch");
         assertEq(resolver.addr(node), newRepoAddress, "Resolver addr mismatch");
-        
+
         // 7) USING A NEW DAO WITH AN UPDATED PLUGIN
         // END TO END: Replicating from test_WhenApplyingAMultisigPluginInstallation above
-        
+
         // Overriding the deployment addresses with the new factories
         deployment.daoFactory = address(newDaoFactory);
         deployment.pluginRepoFactory = address(newPluginRepoFactory);
