@@ -6,6 +6,7 @@ import {AragonTest} from "./helpers/AragonTest.sol";
 import {ProtocolFactoryBuilder} from "./helpers/ProtocolFactoryBuilder.sol";
 import {ProtocolFactory} from "../src/ProtocolFactory.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {DummySetup} from "./helpers/DummySetup.sol";
 
 // OSx Imports
@@ -1822,12 +1823,13 @@ contract ProtocolFactoryTest is AragonTest {
         // It The upgrade proposal succeeds
 
         // Build a parallel deployment, manually
+        builder = new ProtocolFactoryBuilder();
         ProtocolFactory factoryParallel = builder.build();
         factoryParallel.deployOnce();
         ProtocolFactory.Deployment memory deploymentParallel = factoryParallel
             .getDeployment();
-        ProtocolFactory.DeploymentParameters memory deploymentParametersParallel = factoryParallel
-            .getDeploymentParameters();
+        ProtocolFactory.DeploymentParameters memory deploymentParametersParallel = builder
+            .getDeploymentParams();
 
         DAO managementDao = DAO(payable(deployment.managementDao));
         Multisig multisig = Multisig(deployment.managementDaoMultisig);
@@ -1842,7 +1844,7 @@ contract ProtocolFactoryTest is AragonTest {
                 PluginRepo.createVersion,
                 (
                     1, // target release
-                    deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup,
+                    address(deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup),
                     bytes("ipfs://new-build"),
                     bytes("ipfs://new-release")
                 )
@@ -1855,7 +1857,7 @@ contract ProtocolFactoryTest is AragonTest {
                 PluginRepo.createVersion,
                 (
                     1, // target release
-                    deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup,
+                    address(deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup),
                     bytes("ipfs://new-build"),
                     bytes("ipfs://new-release")
                 )
@@ -1868,7 +1870,7 @@ contract ProtocolFactoryTest is AragonTest {
                 PluginRepo.createVersion,
                 (
                     1, // target release
-                    deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup,
+                    address(deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup),
                     bytes("ipfs://new-build"),
                     bytes("ipfs://new-release")
                 )
@@ -1881,7 +1883,7 @@ contract ProtocolFactoryTest is AragonTest {
                 PluginRepo.createVersion,
                 (
                     1, // target release
-                    deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup,
+                    address(deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup),
                     bytes("ipfs://new-build"),
                     bytes("ipfs://new-release")
                 )
@@ -1922,22 +1924,22 @@ contract ProtocolFactoryTest is AragonTest {
         // Before
         assertNotEq(
             adminRepo.getLatestVersion(1).pluginSetup,
-            deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup,
+            address(deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup),
             "Should not be the new version"
         );
         assertNotEq(
             multisigRepo.getLatestVersion(1).pluginSetup,
-            deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup,
+            address(deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup),
             "Should not be the new version"
         );
         assertNotEq(
             tokenVotingRepo.getLatestVersion(1).pluginSetup,
-            deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup,
+            address(deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup),
             "Should not be the new version"
         );
         assertNotEq(
             sppRepo.getLatestVersion(1).pluginSetup,
-            deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup,
+            address(deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup),
             "Should not be the new version"
         );
 
@@ -1948,22 +1950,22 @@ contract ProtocolFactoryTest is AragonTest {
         // After
         assertEq(
             adminRepo.getLatestVersion(1).pluginSetup,
-            deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup,
+            address(deploymentParametersParallel.corePlugins.adminPlugin.pluginSetup),
             "Should be the new version"
         );
         assertEq(
             multisigRepo.getLatestVersion(1).pluginSetup,
-            deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup,
+            address(deploymentParametersParallel.corePlugins.multisigPlugin.pluginSetup),
             "Should be the new version"
         );
         assertEq(
             tokenVotingRepo.getLatestVersion(1).pluginSetup,
-            deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup,
+            address(deploymentParametersParallel.corePlugins.tokenVotingPlugin.pluginSetup),
             "Should be the new version"
         );
         assertEq(
             sppRepo.getLatestVersion(1).pluginSetup,
-            deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup,
+            address(deploymentParametersParallel.corePlugins.stagedProposalProcessorPlugin.pluginSetup),
             "Should be the new version"
         );
 
@@ -2011,14 +2013,13 @@ contract ProtocolFactoryTest is AragonTest {
             condition: address(0),
             permissionId: keccak256("REGISTER_PLUGIN_REPO_PERMISSION")
         });
-        actionData = abi.encodeCall(
-            PermissionManager.applyMultiTargetPermissions,
-            (newPermissions)
-        );
-        actions[1] = Action({
+        actions[0] = Action({
             to: deployment.managementDao,
             value: 0,
-            data: actionData
+            data: abi.encodeCall(
+                PermissionManager.applyMultiTargetPermissions,
+                (newPermissions)
+            )
         });
 
         // PROPOSAL
@@ -2124,12 +2125,126 @@ contract ProtocolFactoryTest is AragonTest {
             "Should have REGISTER_PLUGIN_REPO_PERMISSION_ID"
         );
 
-        // Upgrade the registries
-        // Upgrade the DaoRegistry to the new implementation
-        // Upgrade the PluginRepoRegistry to the new implementation
+        // 3) REGISTRY IMPLEMENTATIONS
 
-        // Upgrade the Managing DAO
+        actions = new Action[](2);
+
+        // Upgrade the DaoRegistry to the new implementation
+        actions[0] = Action({
+            to: deployment.daoRegistry,
+            value: 0,
+            data: abi.encodeCall(
+                UUPSUpgradeable.upgradeTo,
+                (_getImplementation(deploymentParallel.daoRegistry))
+            )
+        });
+        // Upgrade the PluginRepoRegistry to the new implementation
+        actions[1] = Action({
+            to: deployment.pluginRepoRegistry,
+            value: 0,
+            data: abi.encodeCall(
+                UUPSUpgradeable.upgradeTo,
+                (_getImplementation(deploymentParallel.pluginRepoRegistry))
+            )
+        });
+        
+        // PROPOSAL
+
+        vm.prank(alice);
+        proposalId = multisig.createProposal(
+            bytes("ipfs://prop-new-registry-impl"),
+            actions,
+            0, // startdate
+            uint64(block.timestamp + 100), // enddate
+            bytes("")
+        );
+        // Move 1 block forward to avoid missing the snapshot block
+        vm.roll(block.number + 1);
+
+        // Approve
+        vm.prank(alice);
+        multisig.approve(proposalId, false);
+        vm.prank(bob);
+        multisig.approve(proposalId, false);
+
+        // Before
+        assertNotEq(
+          _getImplementation(deployment.daoRegistry),
+          _getImplementation(deploymentParallel.daoRegistry),
+          "Should not have the new implementation"
+        );
+        assertNotEq(
+          _getImplementation(deployment.pluginRepoRegistry),
+          _getImplementation(deploymentParallel.pluginRepoRegistry),
+          "Should not have the new implementation"
+        );
+
+        // Execute
+        vm.prank(carol);
+        multisig.execute(proposalId);
+
+        // After
+        assertEq(
+          _getImplementation(deployment.daoRegistry),
+          _getImplementation(deploymentParallel.daoRegistry),
+          "Should have the new implementation"
+        );
+        assertEq(
+          _getImplementation(deployment.pluginRepoRegistry),
+          _getImplementation(deploymentParallel.pluginRepoRegistry),
+          "Should have the new implementation"
+        );
+
+        // 4) MANAGING DAO IMPLEMENTATION
+        
+
+        actions = new Action[](1);
+
         // Upgrade the management DAO to the new implementation
+        actions[0] = Action({
+            to: deployment.managementDao,
+            value: 0,
+            data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (_getImplementation(deploymentParallel.managementDao)))
+        });
+        
+        // PROPOSAL
+
+        vm.prank(alice);
+        proposalId = multisig.createProposal(
+            bytes("ipfs://prop-new-mgmt-dao-impl"),
+            actions,
+            0, // startdate
+            uint64(block.timestamp + 100), // enddate
+            bytes("")
+        );
+        // Move 1 block forward to avoid missing the snapshot block
+        vm.roll(block.number + 1);
+
+        // Approve
+        vm.prank(alice);
+        multisig.approve(proposalId, false);
+        vm.prank(bob);
+        multisig.approve(proposalId, false);
+
+        // Before
+        assertNotEq(
+          _getImplementation(deployment.managementDao),
+          _getImplementation(deploymentParallel.managementDao),
+          "Should not have the new implementation"
+        );
+
+        // Execute
+        vm.prank(carol);
+        multisig.execute(proposalId);
+
+        // After
+        assertEq(
+          _getImplementation(deployment.managementDao),
+          _getImplementation(deploymentParallel.managementDao),
+          "Should have the new implementation"
+        );
+
+        // CREATING AND USING A NEW DAO (E2E)
     }
 
     // Helpers
