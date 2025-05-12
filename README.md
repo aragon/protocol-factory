@@ -102,12 +102,32 @@ Check the available make targets to simulate and deploy the smart contracts:
 - [ ] All the project's smart contracts are correctly verified on the reference block explorer of the target network.
 - [ ] The output of the latest `logs/deployment-<network>.log` file corresponds to the console output
 - [ ] A file called `artifacts/addresses-<network>-<timestamp>.json` has been created, and the addresses match those logged to the screen
-- [ ] I have uploaded these two files to a shared location
-    - [ ] The rest of members confirm that the values are correct
+- [ ] I have uploaded the following files to a shared location:
+  - `logs/deployment-<network>.log` (the last one)
+  - `artifacts/addresses-<network>-<timestamp>.json`  (the last one)
+  - `broadcast/Deploy.s.sol/<chain-id>/run-<timestamp>.json` (the last one)
+- [ ] The rest of members confirm that the values are correct
 - [ ] I have transferred the remaining funds of the deployment wallet to the address that originally funded it
   - `make refund`
+- [ ] I have cloned https://github.com/aragon/diffyscan-workspace/
+  - [ ] I have copied the deployed addresses to a new config file for the network
+  - [ ] I have run the source code verification and the code matches the [audited commits](https://github.com/aragon/osx/tree/main/audits)
 
 This concludes the deployment ceremony.
+
+### Post deployment (external packages)
+
+This is optional if you are deploying to a custom network.
+
+- [ ] I have followed [these instructions](https://github.com/aragon/osx-commons/tree/main/configs#generating-the-json-files) to generate the JSON file with the addresses for the new network
+  - [ ] If needed, I have added the new network settings
+- [ ] I have followed [these instructions](https://github.com/aragon/osx/tree/main/packages/artifacts#syncing-the-deployment-addresses) for OSx
+- [ ] For each plugin, I have followed the equivalent instructions
+  - https://github.com/aragon/admin-plugin/tree/main/packages/artifacts#syncing-the-deployment-addresses
+  - https://github.com/aragon/multisig-plugin/tree/main/packages/artifacts#syncing-the-deployment-addresses
+  - https://github.com/aragon/token-voting-plugin/tree/main/packages/artifacts#syncing-the-deployment-addresses
+  - https://github.com/aragon/staged-proposal-processor-plugin/tree/main/packages/artifacts#syncing-the-deployment-addresses
+- [ ] I have created a pull request with the updated addresses files on every repository
 
 ## Using the Factory for local tests
 
