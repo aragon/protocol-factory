@@ -1,9 +1,15 @@
 # Grouping networks based on the block explorer they use
 
+# Convention:
+# - Production networks:     <name>
+# - Test networks: 			     <name>-testnet
+
 ETHERSCAN_NETWORKS := mainnet sepolia holesky optimism
 BLOCKSCOUT_NETWORKS := mode
-SOURCIFY_NETWORKS := monadTestnet
+SOURCIFY_NETWORKS := monad-testnet
+ROUTESCAN_NETWORKS := corn corn-testnet
 
 AVAILABLE_NETWORKS = $(ETHERSCAN_NETWORKS) \
 	$(BLOCKSCOUT_NETWORKS) \
-	$(SOURCIFY_NETWORKS)
+	$(SOURCIFY_NETWORKS) \
+	$(ROUTESCAN_NETWORKS)

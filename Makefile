@@ -8,7 +8,7 @@ SHELL:=/bin/bash
 
 # CONSTANTS
 
-SOLIDITY_VERSION := 0.8.22
+SOLIDITY_VERSION := 0.8.28
 DEPLOY_SCRIPT := script/Deploy.s.sol:DeployScript
 MULTISIG_MEMBERS_FILE := ./multisig-members.json
 MAKE_TEST_TREE_CMD := deno run ./test/scripts/make-test-tree.ts
@@ -17,26 +17,41 @@ ARTIFACTS_FOLDER := ./artifacts
 LOGS_FOLDER := ./logs
 VERBOSITY := -vvv
 
+NETWORK_NAME:=$(strip $(subst ',, $(subst ",,$(NETWORK_NAME))))
+CHAIN_ID:=$(strip $(subst ',, $(subst ",,$(CHAIN_ID))))
+
 TEST_COVERAGE_SRC_FILES := $(wildcard test/*.sol test/**/*.sol src/*.sol src/**/*.sol)
 TEST_SOURCE_FILES := $(wildcard test/*.t.yaml test/integration/*.t.yaml)
 TEST_TREE_FILES := $(TEST_SOURCE_FILES:.t.yaml=.tree)
 DEPLOYMENT_ADDRESS := $(shell cast wallet address --private-key $(DEPLOYMENT_PRIVATE_KEY) 2>/dev/null || echo "NOTE: DEPLOYMENT_PRIVATE_KEY is not properly set on .env" > /dev/stderr)
 
-DEPLOYMENT_LOG_FILE=deployment-$(patsubst "%",%,$(NETWORK_NAME))-$(shell date +"%y-%m-%d-%H-%M").log
+DEPLOYMENT_LOG_FILE=deployment-$(NETWORK_NAME)-$(shell date +"%y-%m-%d-%H-%M").log
 
 # Check values
-ifeq ($(filter $(subst ",,$(NETWORK_NAME)),$(AVAILABLE_NETWORKS)),)
+
+ifeq ($(filter $(NETWORK_NAME),$(AVAILABLE_NETWORKS)),)
   $(error Unknown network: $(NETWORK_NAME). Must be one of: $(AVAILABLE_NETWORKS) (see constants.mk))
 endif
 
 # Conditional assignments
-ifneq ($(filter $(subst ",,$(NETWORK_NAME)), $(ETHERSCAN_NETWORKS)),)
-	ETHERSCAN_API_KEY_PARAM := --etherscan-api-key $(ETHERSCAN_API_KEY)
+
+ifneq ($(filter $(NETWORK_NAME), $(ETHERSCAN_NETWORKS)),)
+	VERIFIER_PARAMS := --etherscan-api-key $(ETHERSCAN_API_KEY)
 endif
 
-ifneq ($(filter $(subst ",,$(NETWORK_NAME)), $(BLOCKSCOUT_NETWORKS)),)
-	VERIFIER_TYPE_PARAM = --verifier blockscout
-	VERIFIER_URL_PARAM = --verifier-url "https://$(BLOCKSCOUT_HOST_NAME)/api\?"
+ifneq ($(filter $(NETWORK_NAME), $(BLOCKSCOUT_NETWORKS)),)
+	VERIFIER_PARAMS = --verifier blockscout --verifier-url "https://$(BLOCKSCOUT_HOST_NAME)/api\?"
+endif
+
+ifneq ($(filter $(NETWORK_NAME), $(SOURCIFY_NETWORKS)),)
+endif
+
+ifneq ($(filter $(NETWORK_NAME), $(ROUTESCAN_NETWORKS)),)
+  ifeq ($(findstring -testnet, $(NETWORK_NAME)),)
+  	VERIFIER_PARAMS = --verifier-url 'https://api.routescan.io/v2/network/mainnet/evm/$(CHAIN_ID)/etherscan' --etherscan-api-key "verifyContract"
+  else
+  	VERIFIER_PARAMS = --verifier-url 'https://api.routescan.io/v2/network/testnet/evm/$(CHAIN_ID)/etherscan' --etherscan-api-key "verifyContract"
+  endif
 endif
 
 # TARGETS
@@ -160,9 +175,7 @@ deploy: test ## Deploy the protocol, verify the source code and write to ./artif
 		--delay 8 \
 		--broadcast \
 		--verify \
-		$(VERIFIER_TYPE_PARAM) \
-		$(VERIFIER_URL_PARAM) \
-		$(ETHERSCAN_API_KEY_PARAM) \
+		$(VERIFIER_PARAMS) \
 		$(VERBOSITY) 2>&1 | tee $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
 
 ##
