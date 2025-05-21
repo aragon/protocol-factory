@@ -192,15 +192,15 @@ deploy: test ## Deploy the protocol, verify the source code and write to ./artif
 
 .PHONY: verify-etherscan
 verify-etherscan: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json
-	RPC_URL=$(RPC_URL) bash script/verify-contracts.sh $(CHAIN_ID) etherscan $(VERIFIER_URL) $(VERIFIER_API_KEY)
+	bash script/verify-contracts.sh $(CHAIN_ID) etherscan $(VERIFIER_URL) $(VERIFIER_API_KEY)
 
 .PHONY: verify-blockscout
 verify-blockscout: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json
-	RPC_URL=$(RPC_URL) bash script/verify-contracts.sh $(CHAIN_ID) blockscout $(VERIFIER_URL) $(VERIFIER_API_KEY)
+	bash script/verify-contracts.sh $(CHAIN_ID) blockscout $(VERIFIER_URL) $(VERIFIER_API_KEY)
 
 .PHONY: verify-sourcify
 verify-sourcify: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json
-	RPC_URL=$(RPC_URL) bash script/verify-contracts.sh $(CHAIN_ID) sourcify "" ""
+	bash script/verify-contracts.sh $(CHAIN_ID) sourcify "" ""
 
 .PHONY: refund
 refund: ## Refund the remaining balance left on the deployment account

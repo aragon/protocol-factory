@@ -91,7 +91,7 @@ build_common_args() {
 locate_source_file() {
   local contract_name="$1"
 
-  find src lib | grep "/$contract_name.sol\$"
+  find src lib | grep -i "/$contract_name.sol\$"
 }
 
 verify_contract() {
@@ -106,8 +106,6 @@ verify_contract() {
   echo "----------------------------------------------------------------------"
 
   local verify_args=()
-  verify_args+=(--rpc-url "$RPC_URL")
-  verify_args+=(--chain-id "$CHAIN_ID")
 
   case "$EXPLORER_TYPE" in
     etherscan)
@@ -118,7 +116,7 @@ verify_contract() {
       verify_args+=(--verifier etherscan)
       verify_args+=(--verifier-url "$EXPLORER_API_URL")
       if [[ -n "$EXPLORER_API_KEY" ]]; then
-        verify_args+=(--etherscan-api-key "$EXPLORER_API_KEY")
+        verify_args+=(--etherscan-api-key \"$EXPLORER_API_KEY\")
       fi
       ;;
     blockscout)
@@ -129,13 +127,13 @@ verify_contract() {
       verify_args+=(--verifier blockscout)
       verify_args+=(--verifier-url "$EXPLORER_API_URL")
       if [[ -n "$EXPLORER_API_KEY" ]]; then
-        verify_args+=(--etherscan-api-key "$EXPLORER_API_KEY")
+        verify_args+=(--etherscan-api-key \"$EXPLORER_API_KEY\")
       fi
       ;;
     sourcify)
       verify_args+=(--verifier sourcify)
       if [[ -n "$EXPLORER_API_KEY" ]]; then
-        verify_args+=(--etherscan-api-key "$EXPLORER_API_KEY")
+        verify_args+=(--etherscan-api-key \"$EXPLORER_API_KEY\")
       fi
       ;;
     *)
@@ -155,10 +153,10 @@ verify_contract() {
 
   echo "forge verify-contract ${verify_args[*]}"
   echo
-  if forge verify-contract "${verify_args[@]}" ; then
-    echo "- Successfully verified ${contract_name} (${EXPLORER_TYPE})."
+  if ETHERSCAN_API_KEY="$EXPLORER_API_KEY" forge verify-contract "${verify_args[@]}" ; then
+    echo "[SUCCESS] ${contract_name} (${EXPLORER_TYPE})"
   else
-    echo "- Failed to verify ${contract_name} (${EXPLORER_TYPE})."
+    echo "[FAILED] ${contract_name} (${EXPLORER_TYPE})"
   fi
   echo "----------------------------------------------------------------------"
 }
