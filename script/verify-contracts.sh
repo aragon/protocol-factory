@@ -13,7 +13,6 @@
 # Optional Environment Variables:
 # COMPILER_VERSION:        Specify if contracts were compiled with a non-default version.
 # OPTIMIZER_RUNS:          Number of optimizer runs if enabled and non-default.
-# CONTRACT_SRC_PATH:       Base path for contract source files (default: '../src/').
 # FORGE_VERIFY_EXTRA_ARGS: Extra arguments to pass to all forge verify-contract calls.
 
 set -uo pipefail # Exit on unset variables and on pipeline errors
@@ -25,22 +24,22 @@ DEPLOY_SCRIPT_FILENAME="Deploy.s.sol"
 
 usage() {
   echo "Usage:"
-  echo "  $(basename $0) <chain_id> <explorer_type> <explorer_api_url> <explorer_api_key>"
+  echo "  $(basename "$0") <chain_id> <explorer_type> <explorer_api_url> [explorer_api_key]"
   echo
-  echo "Etherscan:"
-  echo "  $(basename $0) 11155111 etherscan https://api-sepolia.etherscan.io/api api_key_1234"
+  echo "Example (Etherscan/Routescan):"
+  echo "  $(basename "$0") 11155111 etherscan https://api-sepolia.etherscan.io/api YOUR_ETHERSCAN_KEY"
   echo
-  echo "Blockscout:"
-  echo "  $(basename $0) 100 blockscout https://blockscout.com/xdai/mainnet/api api_key_1234"
+  echo "Example (Blockscout):"
+  echo "  $(basename "$0") 100 blockscout https://blockscout.com/xdai/mainnet/api YOUR_BLOCKSCOUT_KEY"
   echo
-  echo "Sourcify:"
-  echo "  $(basename $0) 11155111 sourcify \"\" \"\""
+  echo "Example (Sourcify):"
+  echo "  $(basename "$0") 11155111 sourcify \"\" \"\""
   echo
   echo "Explorer Types: 'etherscan', 'blockscout', 'sourcify'"
   echo "API URL and Key are not used for 'sourcify' type but placeholders might be needed if your Makefile passes them."
   echo ""
   echo "Optional Environment Variables:"
-  echo "  COMPILER_VERSION, OPTIMIZER_RUNS, CONTRACT_SRC_PATH, FORGE_VERIFY_EXTRA_ARGS"
+  echo "  COMPILER_VERSION, OPTIMIZER_RUNS, FORGE_VERIFY_EXTRA_ARGS"
   exit 1
 }
 
@@ -56,15 +55,10 @@ check_dependencies() {
 }
 
 build_common_args() {
-  local contract_address="$1"
-  local contract_verification_path="$2"
-  local constructor_args_hex="$3"
-  local libraries_cli_string="$4"
+  local constructor_args_hex="$1"
+  local libraries_cli_string="$2"
 
-  common_args=()
-
-  common_args+=("$contract_address")
-  common_args+=("$contract_verification_path")
+  local common_args=()
 
   if [[ -n "$constructor_args_hex" && "$constructor_args_hex" != "null" && "$constructor_args_hex" != "0x" ]]; then
     common_args+=(--constructor-args "$constructor_args_hex")
@@ -89,70 +83,82 @@ build_common_args() {
     common_args+=($FORGE_VERIFY_EXTRA_ARGS)
   fi
 
-  echo $common_args
+  if ((${#common_args[@]} > 0)); then
+    printf "%s\n" "${common_args[@]}"
+  fi
+}
+
+locate_source_file() {
+  local contract_name="$1"
+
+  find src lib | grep "/$contract_name.sol\$"
 }
 
 verify_contract() {
   local contract_address="$1"
   local contract_name="$2"
   local contract_verification_path="$3"
-  local constructor_args_hex="$4"
-  local libraries_cli_string="$5"
+  local constructor_args_for_build="$4"
+  local libraries_cli_for_build="$5"
 
-  local explorer_type="$EXPLORER_TYPE" # From global script variable
-  local api_url="$EXPLORER_API_URL"
-  local api_key="$EXPLORER_API_KEY"
+  # Explorer details are global variables set in Main Logic
 
   echo "----------------------------------------------------------------------"
-  echo "Verifying ${contract_name} (${contract_address}) (Type: ${explorer_type}, URL: ${api_url:-N/A})"
-  echo "Contract Path for Verification: ${contract_verification_path}"
 
-  common_args=$(build_common_args "$contract_address" "$contract_verification_path" "$constructor_args_hex" "$libraries_cli_string")
+  local verify_args=()
+  verify_args+=(--rpc-url "$RPC_URL")
+  verify_args+=(--chain-id "$CHAIN_ID")
 
-  local verify_cmd_args=()
-  verify_cmd_args+=(--chain-id "$CHAIN_ID")
-  verify_cmd_args+=(--rpc-url "$RPC_URL")
-
-  case "$explorer_type" in
+  case "$EXPLORER_TYPE" in
     etherscan)
-      if [[ -z "$api_url" ]]; then
+      if [[ -z "$EXPLORER_API_URL" ]]; then
         echo "Error: API URL is required for etherscan type."
         return 1 # Indicate failure for this specific verification
       fi
-      verify_cmd_args+=(--verifier etherscan)
-      verify_cmd_args+=(--verifier-url "$api_url")
-      if [[ -n "$api_key" ]]; then
-        verify_cmd_args+=(--etherscan-api-key "$api_key")
+      verify_args+=(--verifier etherscan)
+      verify_args+=(--verifier-url "$EXPLORER_API_URL")
+      if [[ -n "$EXPLORER_API_KEY" ]]; then
+        verify_args+=(--etherscan-api-key "$EXPLORER_API_KEY")
       fi
       ;;
     blockscout)
-      if [[ -z "$api_url" ]]; then
+      if [[ -z "$EXPLORER_API_URL" ]]; then
         echo "Error: API URL is required for blockscout type."
         return 1
       fi
-      verify_cmd_args+=(--verifier blockscout)
-      verify_cmd_args+=(--verifier-url "$api_url")
-      if [[ -n "$api_key" ]]; then
-        verify_cmd_args+=(--etherscan-api-key "$api_key")
+      verify_args+=(--verifier blockscout)
+      verify_args+=(--verifier-url "$EXPLORER_API_URL")
+      if [[ -n "$EXPLORER_API_KEY" ]]; then
+        verify_args+=(--etherscan-api-key "$EXPLORER_API_KEY")
       fi
       ;;
     sourcify)
-      verify_cmd_args+=(--verifier sourcify)
-      # API URL and Key are not typically used for direct sourcify verification with forge
+      verify_args+=(--verifier sourcify)
+      if [[ -n "$EXPLORER_API_KEY" ]]; then
+        verify_args+=(--etherscan-api-key "$EXPLORER_API_KEY")
+      fi
       ;;
     *)
-      echo "Error: Unknown explorer type '${explorer_type}'. Supported types: etherscan, blockscout, sourcify."
+      echo "Error: Unknown explorer type '${EXPLORER_TYPE}'. Supported types: etherscan, blockscout, sourcify."
       return 1
       ;;
   esac
 
-  verify_cmd_args+=("${common_args[@]}")
+  # Optional arguments (constructor, libs, compiler, etc.)
+  while IFS= read -r line; do
+    verify_args+=("$line")
+  done < <(build_common_args "$constructor_args_for_build" "$libraries_cli_for_build")
 
-  echo "Executing: forge verify-contract ${verify_cmd_args[*]}"
-  if forge verify-contract "${verify_cmd_args[@]}"; then
-    echo "Successfully verified ${contract_name} (${explorer_type})."
+  # Positional arguments (last)
+  verify_args+=("$contract_address")
+  verify_args+=("$contract_verification_path")
+
+  echo "forge verify-contract ${verify_args[*]}"
+  echo
+  if forge verify-contract "${verify_args[@]}" ; then
+    echo "- Successfully verified ${contract_name} (${EXPLORER_TYPE})."
   else
-    echo "Failed to verify ${contract_name} (${explorer_type}). Check output above."
+    echo "- Failed to verify ${contract_name} (${EXPLORER_TYPE})."
   fi
   echo "----------------------------------------------------------------------"
 }
@@ -174,7 +180,7 @@ EXPLORER_API_KEY="${4:-}"
 # Validate explorer type
 case "$EXPLORER_TYPE" in
   etherscan|blockscout|sourcify)
-    ;; # Valid type
+    ;;
   *)
     echo "Error: Invalid explorer_type '$EXPLORER_TYPE'."
     usage
@@ -182,7 +188,7 @@ case "$EXPLORER_TYPE" in
 esac
 
 if [[ ("$EXPLORER_TYPE" == "etherscan" || "$EXPLORER_TYPE" == "blockscout") && -z "$EXPLORER_API_URL" ]]; then
-    echo "Error: Explorer API URL (argument 4) is required for type '$EXPLORER_TYPE'."
+    echo "Error: Explorer API URL (argument 3) is required for type '$EXPLORER_TYPE'."
     usage
 fi
 
@@ -209,9 +215,6 @@ jq_query=$(cat <<EOF
 EOF
 )
 
-src_contract_path_base="${CONTRACT_SRC_PATH:-src/}"
-[[ "${src_contract_path_base}" != */ ]] && src_contract_path_base="${src_contract_path_base}/"
-
 jq -r "$jq_query" "$RUN_LATEST_JSON_PATH" | while IFS='|' read -r contract_address contract_name constructor_args_hex libraries_cli_string; do
   if [[ -z "$contract_address" || -z "$contract_name" ]]; then
     echo "Skipping entry with missing address or name: Addr='${contract_address}', Name='${contract_name}'"
@@ -219,15 +222,15 @@ jq -r "$jq_query" "$RUN_LATEST_JSON_PATH" | while IFS='|' read -r contract_addre
   fi
 
   echo ""
-  echo "Processing contract: ${contract_name} at ${contract_address}"
-  contract_verification_path="${src_contract_path_base}${contract_name}.sol:${contract_name}"
+  echo "Processing ${contract_name} at ${contract_address}"
+  contract_verification_path="$(locate_source_file "$contract_name"):${contract_name}"
 
   verify_contract "$contract_address" \
-                               "$contract_name" \
-                               "$contract_verification_path" \
-                               "$constructor_args_hex" \
-                               "$libraries_cli_string"
+                  "$contract_name" \
+                  "$contract_verification_path" \
+                  "$constructor_args_hex" \
+                  "$libraries_cli_string"
 done
 
 echo ""
-echo "All contracts processed."
+echo "All contracts processed for ${EXPLORER_TYPE}."
