@@ -308,6 +308,22 @@ ProtocolFactory factory = new ProtocolFactory(params);
 factory.deployOnce();
 ```
 
+## Manual contract verification
+
+### Routescan verifier
+
+```sh
+$ forge verify-contract <address> <path/to/file.sol>:<contract-name> --verifier-url 'https://api.routescan.io/v2/network/<testnet|mainnet>/evm/<chain-id>/etherscan' --etherscan-api-key "verifyContract" --num-of-optimizations 200 --compiler-version 0.8.28 --constructor-args <args>
+```
+
+Where:
+- `<address>` is the address of the contract to verify
+- `<path/to/file.sol>:<contract-name>` is the path of the source file along with the contract name
+- `<testnet|mainnet>` the type of network
+- `<chain-id>` the ID of the chain
+- `<args>` the constructor arguments
+  - Get them with `$(cast abi-encode "constructor(address param1, uint256 param2,...)" param1 param2 ...)`
+
 ## Deployment troubleshooting (CLI)
 
 If you get the error Failed to get EIP-1559 fees, add `--legacy` to the command:

@@ -43,6 +43,16 @@ contract DeployScript is Script {
     string constant DEFAULT_PLUGIN_ENS_SUBDOMAIN = "plugin";
     string constant DEFAULT_MANAGEMENT_DAO_MEMBERS_FILE_NAME = "multisig-members.json";
 
+    string DEFAULT_ADMIN_RELEASE_METADATA = "ipfs://bafkreifbwooo3h36htzscftwm3kouoktcvkqyhaxluodo6xkyprnon3r54";
+    string DEFAULT_ADMIN_BUILD_METADATA = "ipfs://bafkreifijshftf47q5mtoibfvwkzv42reqf4uddi46i7kcblt6bpsvgii4";
+    string DEFAULT_MULTISIG_RELEASE_METADATA = "ipfs://bafkreiesxfvwf7qphbpw2epmabrrz2alwo66fso7tjx3cbt63k4xzec3ma";
+    string DEFAULT_MULTISIG_BUILD_METADATA = "ipfs://bafkreiaipjj2ryy2ui77crwmgbamjkmr6xbdvrviylh4z4kf54sq2etvgu";
+    string DEFAULT_TOKEN_VOTING_RELEASE_METADATA = "ipfs://bafkreidwa5z5vi2o43msjwfinxapf3zfpshapdaw6kksdz52sffb4p4oqi";
+    string DEFAULT_TOKEN_VOTING_BUILD_METADATA = "ipfs://bafkreifsn2562ftambmmfoqa64wfxviu4g47evmcj5ydsjdmmsmqhqrn3i";
+    string DEFAULT_SPP_RELEASE_METADATA = "ipfs://bafkreif23p6yw325rkwwlhgkudiasvq64lonqmfnt7ls5ksfam5hedcb4m";
+    string DEFAULT_SPP_BUILD_METADATA = "ipfs://bafkreifia6hhz7klfbaqawd4vcplkoiesycbmrf5c2x24zfuivyn35mfsu";
+    string DEFAULT_MANAGEMENT_DAO_METADATA = "ipfs://bafkreibemfrxeuwfaono6k37vbi66fctcwtioiyctrl4fvqtqmiodt2mle";
+
     DAO daoBase;
     DAORegistry daoRegistryBase;
     PluginRepoRegistry pluginRepoRegistryBase;
@@ -208,39 +218,39 @@ contract DeployScript is Script {
                     pluginSetup: adminSetup,
                     release: 1,
                     build: 2,
-                    releaseMetadataUri: vm.envOr("ADMIN_PLUGIN_RELEASE_METADATA_URI", string("ipfs://")),
-                    buildMetadataUri: vm.envOr("ADMIN_PLUGIN_BUILD_METADATA_URI", string("ipfs://")),
+                    releaseMetadataUri: vm.envOr("ADMIN_PLUGIN_RELEASE_METADATA_URI", DEFAULT_ADMIN_RELEASE_METADATA),
+                    buildMetadataUri: vm.envOr("ADMIN_PLUGIN_BUILD_METADATA_URI", DEFAULT_ADMIN_BUILD_METADATA),
                     subdomain: vm.envOr("ADMIN_PLUGIN_SUBDOMAIN", string("admin"))
                 }),
                 multisigPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: multisigSetup,
                     release: 1,
                     build: 3,
-                    releaseMetadataUri: vm.envOr("MULTISIG_PLUGIN_RELEASE_METADATA_URI", string("ipfs://")),
-                    buildMetadataUri: vm.envOr("MULTISIG_PLUGIN_BUILD_METADATA_URI", string("ipfs://")),
+                    releaseMetadataUri: vm.envOr("MULTISIG_PLUGIN_RELEASE_METADATA_URI", DEFAULT_MULTISIG_RELEASE_METADATA),
+                    buildMetadataUri: vm.envOr("MULTISIG_PLUGIN_BUILD_METADATA_URI", DEFAULT_MULTISIG_BUILD_METADATA),
                     subdomain: vm.envOr("MULTISIG_PLUGIN_SUBDOMAIN", string("multisig"))
                 }),
                 tokenVotingPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: tokenVotingSetup,
                     release: 1,
                     build: 3,
-                    releaseMetadataUri: vm.envOr("TOKEN_VOTING_PLUGIN_RELEASE_METADATA_URI", string("ipfs://")),
-                    buildMetadataUri: vm.envOr("TOKEN_VOTING_PLUGIN_BUILD_METADATA_URI", string("ipfs://")),
+                    releaseMetadataUri: vm.envOr("TOKEN_VOTING_PLUGIN_RELEASE_METADATA_URI", DEFAULT_TOKEN_VOTING_RELEASE_METADATA),
+                    buildMetadataUri: vm.envOr("TOKEN_VOTING_PLUGIN_BUILD_METADATA_URI", DEFAULT_TOKEN_VOTING_BUILD_METADATA),
                     subdomain: vm.envOr("TOKEN_VOTING_PLUGIN_SUBDOMAIN", string("token-voting"))
                 }),
                 stagedProposalProcessorPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: stagedProposalProcessorSetup,
                     release: 1,
                     build: 1,
-                    releaseMetadataUri: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_RELEASE_METADATA_URI", string("ipfs://")),
-                    buildMetadataUri: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_BUILD_METADATA_URI", string("ipfs://")),
+                    releaseMetadataUri: vm.envOr(
+                        "STAGED_PROPOSAL_PROCESSOR_PLUGIN_RELEASE_METADATA_URI", DEFAULT_SPP_RELEASE_METADATA
+                    ),
+                    buildMetadataUri: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_BUILD_METADATA_URI", DEFAULT_SPP_BUILD_METADATA),
                     subdomain: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_SUBDOMAIN", string("spp"))
                 })
             }),
             managementDao: ProtocolFactory.ManagementDaoParameters({
-                metadataUri: vm.envOr(
-                    "MANAGEMENT_DAO_METADATA_URI", string("ipfs://bafkreibemfrxeuwfaono6k37vbi66fctcwtioiyctrl4fvqtqmiodt2mle")
-                ),
+                metadataUri: vm.envOr("MANAGEMENT_DAO_METADATA_URI", DEFAULT_MANAGEMENT_DAO_METADATA),
                 members: readManagementDaoMembers(),
                 minApprovals: uint8(vm.envUint("MANAGEMENT_DAO_MIN_APPROVALS"))
             })
