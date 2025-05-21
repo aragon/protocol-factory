@@ -208,32 +208,56 @@ contract DeployScript is Script {
                     pluginSetup: adminSetup,
                     release: 1,
                     build: 2,
-                    releaseMetadataUri: vm.envOr("ADMIN_PLUGIN_RELEASE_METADATA_URI", string("ipfs://bafkreifbwooo3h36htzscftwm3kouoktcvkqyhaxluodo6xkyprnon3r54")),
-                    buildMetadataUri: vm.envOr("ADMIN_PLUGIN_BUILD_METADATA_URI", string("ipfs://bafkreifijshftf47q5mtoibfvwkzv42reqf4uddi46i7kcblt6bpsvgii4")),
+                    releaseMetadataUri: vm.envOr(
+                        "ADMIN_PLUGIN_RELEASE_METADATA_URI",
+                        string("ipfs://bafkreifbwooo3h36htzscftwm3kouoktcvkqyhaxluodo6xkyprnon3r54")
+                    ),
+                    buildMetadataUri: vm.envOr(
+                        "ADMIN_PLUGIN_BUILD_METADATA_URI",
+                        string("ipfs://bafkreifijshftf47q5mtoibfvwkzv42reqf4uddi46i7kcblt6bpsvgii4")
+                    ),
                     subdomain: vm.envOr("ADMIN_PLUGIN_SUBDOMAIN", string("admin"))
                 }),
                 multisigPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: multisigSetup,
                     release: 1,
                     build: 3,
-                    releaseMetadataUri: vm.envOr("MULTISIG_PLUGIN_RELEASE_METADATA_URI", string("ipfs://bafkreiesxfvwf7qphbpw2epmabrrz2alwo66fso7tjx3cbt63k4xzec3ma")),
-                    buildMetadataUri: vm.envOr("MULTISIG_PLUGIN_BUILD_METADATA_URI", string("ipfs://bafkreiaipjj2ryy2ui77crwmgbamjkmr6xbdvrviylh4z4kf54sq2etvgu")),
+                    releaseMetadataUri: vm.envOr(
+                        "MULTISIG_PLUGIN_RELEASE_METADATA_URI",
+                        string("ipfs://bafkreiesxfvwf7qphbpw2epmabrrz2alwo66fso7tjx3cbt63k4xzec3ma")
+                    ),
+                    buildMetadataUri: vm.envOr(
+                        "MULTISIG_PLUGIN_BUILD_METADATA_URI",
+                        string("ipfs://bafkreiaipjj2ryy2ui77crwmgbamjkmr6xbdvrviylh4z4kf54sq2etvgu")
+                    ),
                     subdomain: vm.envOr("MULTISIG_PLUGIN_SUBDOMAIN", string("multisig"))
                 }),
                 tokenVotingPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: tokenVotingSetup,
                     release: 1,
                     build: 3,
-                    releaseMetadataUri: vm.envOr("TOKEN_VOTING_PLUGIN_RELEASE_METADATA_URI", string("ipfs://bafkreidwa5z5vi2o43msjwfinxapf3zfpshapdaw6kksdz52sffb4p4oqi")),
-                    buildMetadataUri: vm.envOr("TOKEN_VOTING_PLUGIN_BUILD_METADATA_URI", string("ipfs://bafkreifsn2562ftambmmfoqa64wfxviu4g47evmcj5ydsjdmmsmqhqrn3i")),
+                    releaseMetadataUri: vm.envOr(
+                        "TOKEN_VOTING_PLUGIN_RELEASE_METADATA_URI",
+                        string("ipfs://bafkreidwa5z5vi2o43msjwfinxapf3zfpshapdaw6kksdz52sffb4p4oqi")
+                    ),
+                    buildMetadataUri: vm.envOr(
+                        "TOKEN_VOTING_PLUGIN_BUILD_METADATA_URI",
+                        string("ipfs://bafkreifsn2562ftambmmfoqa64wfxviu4g47evmcj5ydsjdmmsmqhqrn3i")
+                    ),
                     subdomain: vm.envOr("TOKEN_VOTING_PLUGIN_SUBDOMAIN", string("token-voting"))
                 }),
                 stagedProposalProcessorPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: stagedProposalProcessorSetup,
                     release: 1,
                     build: 1,
-                    releaseMetadataUri: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_RELEASE_METADATA_URI", string("ipfs://bafkreif23p6yw325rkwwlhgkudiasvq64lonqmfnt7ls5ksfam5hedcb4m")),
-                    buildMetadataUri: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_BUILD_METADATA_URI", string("ipfs://bafkreifia6hhz7klfbaqawd4vcplkoiesycbmrf5c2x24zfuivyn35mfsu")),
+                    releaseMetadataUri: vm.envOr(
+                        "STAGED_PROPOSAL_PROCESSOR_PLUGIN_RELEASE_METADATA_URI",
+                        string("ipfs://bafkreif23p6yw325rkwwlhgkudiasvq64lonqmfnt7ls5ksfam5hedcb4m")
+                    ),
+                    buildMetadataUri: vm.envOr(
+                        "STAGED_PROPOSAL_PROCESSOR_PLUGIN_BUILD_METADATA_URI",
+                        string("ipfs://bafkreifia6hhz7klfbaqawd4vcplkoiesycbmrf5c2x24zfuivyn35mfsu")
+                    ),
                     subdomain: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_SUBDOMAIN", string("spp"))
                 })
             }),
