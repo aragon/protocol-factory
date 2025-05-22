@@ -36,22 +36,30 @@ endif
 # Conditional assignments
 
 ifneq ($(filter $(NETWORK_NAME), $(ETHERSCAN_NETWORKS)),)
+	# VERIFIER_URL := https://api.etherscan.io/api
+	VERIFIER_API_KEY := $(ETHERSCAN_API_KEY)
 	VERIFIER_PARAMS := --etherscan-api-key $(ETHERSCAN_API_KEY)
 endif
 
 ifneq ($(filter $(NETWORK_NAME), $(BLOCKSCOUT_NETWORKS)),)
-	VERIFIER_PARAMS = --verifier blockscout --verifier-url "https://$(BLOCKSCOUT_HOST_NAME)/api\?"
+	VERIFIER_URL := https://$(BLOCKSCOUT_HOST_NAME)/api\?
+	VERIFIER_API_KEY := ""
+	VERIFIER_PARAMS = --verifier blockscout --verifier-url "$(VERIFIER_URL)"
 endif
 
 ifneq ($(filter $(NETWORK_NAME), $(SOURCIFY_NETWORKS)),)
 endif
 
 ifneq ($(filter $(NETWORK_NAME), $(ROUTESCAN_NETWORKS)),)
+	VERIFIER_API_KEY := "verifyContract"
+
   ifeq ($(findstring -testnet, $(NETWORK_NAME)),)
-  	VERIFIER_PARAMS = --verifier-url 'https://api.routescan.io/v2/network/mainnet/evm/$(CHAIN_ID)/etherscan' --etherscan-api-key "verifyContract"
+  	VERIFIER_URL := https://api.routescan.io/v2/network/mainnet/evm/$(CHAIN_ID)/etherscan
   else
-  	VERIFIER_PARAMS = --verifier-url 'https://api.routescan.io/v2/network/testnet/evm/$(CHAIN_ID)/etherscan' --etherscan-api-key "verifyContract"
+  	VERIFIER_URL := https://api.routescan.io/v2/network/testnet/evm/$(CHAIN_ID)/etherscan
   endif
+
+	VERIFIER_PARAMS = --verifier-url '$(VERIFIER_URL)' --etherscan-api-key $(VERIFIER_API_KEY)
 endif
 
 # TARGETS
@@ -179,6 +187,20 @@ deploy: test ## Deploy the protocol, verify the source code and write to ./artif
 		$(VERBOSITY) 2>&1 | tee $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
 
 ##
+
+## Verification:
+
+.PHONY: verify-etherscan
+verify-etherscan: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json
+	bash script/verify-contracts.sh $(CHAIN_ID) etherscan $(VERIFIER_URL) $(VERIFIER_API_KEY)
+
+.PHONY: verify-blockscout
+verify-blockscout: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json
+	bash script/verify-contracts.sh $(CHAIN_ID) blockscout $(VERIFIER_URL) $(VERIFIER_API_KEY)
+
+.PHONY: verify-sourcify
+verify-sourcify: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json
+	bash script/verify-contracts.sh $(CHAIN_ID) sourcify "" ""
 
 .PHONY: refund
 refund: ## Refund the remaining balance left on the deployment account
