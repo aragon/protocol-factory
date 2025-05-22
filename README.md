@@ -80,9 +80,12 @@ Check the available make targets to simulate and deploy the smart contracts:
 - [ ] The `.env` file contains the correct parameters for the deployment
   - [ ] I have created a new burner wallet with `cast wallet new` and copied the private key to `DEPLOYMENT_PRIVATE_KEY` within `.env`
   - [ ] I have set the correct `RPC_URL` for the network
-  - [ ] The value of `NETWORK_NAME` is listed within `constants.mk`
-  - [ ] I have set `ETHERSCAN_API_KEY` (if relevant to the target network)
-  - [ ] I have printed the contents of `.env` on the screen
+  - [ ] I have set the correct `CHAIN_ID` for the network
+  - [ ] The value of `NETWORK_NAME` is listed within `constants.mk`, at the appropriate place
+  - [ ] I have set `ETHERSCAN_API_KEY` or `BLOCKSCOUT_HOST_NAME` (when relevant to the target network)
+  - [ ] `MANAGEMENT_DAO_MIN_APPROVALS` has the right value
+  - [ ] The file pointed by `MANAGEMENT_DAO_MEMBERS_FILE_NAME` contains the appropriate addresses
+  - [ ] I have printed the contents of `.env` to the screen
   - [ ] I am the only person of the ceremony that will operate the deployment wallet
 - [ ] All the tests run clean (`make test`)
 - My computer:
@@ -106,7 +109,7 @@ Check the available make targets to simulate and deploy the smart contracts:
 - [ ] The deployment process completed with no errors
 - [ ] The factory contract was deployed by the deployment address
 - [ ] All the project's smart contracts are correctly verified on the reference block explorer of the target network.
-- [ ] The output of the latest `logs/deployment-<network>.log` file corresponds to the console output
+- [ ] The output of the latest `logs/deployment-<network>-<date>.log` file corresponds to the console output
 - [ ] A file called `artifacts/addresses-<network>-<timestamp>.json` has been created, and the addresses match those logged to the screen
 - [ ] I have uploaded the following files to a shared location:
   - `logs/deployment-<network>.log` (the last one)
