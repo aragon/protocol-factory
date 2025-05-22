@@ -73,7 +73,7 @@ help: ## Display the available targets
 		elif [[ "$$line" =~ ^##\ (.*)$$ ]]; then \
 			printf "\n$${BASH_REMATCH[1]}\n\n" ; \
 		elif [[ "$$line" =~ ^([^:]+):(.*)##\ (.*)$$ ]]; then \
-			printf "%s %-*s %s\n" "- make" 16 "$${BASH_REMATCH[1]}" "$${BASH_REMATCH[3]}" ; \
+			printf "%s %-*s %s\n" "- make" 18 "$${BASH_REMATCH[1]}" "$${BASH_REMATCH[3]}" ; \
 		fi ; \
 	done
 
@@ -186,21 +186,21 @@ deploy: test ## Deploy the protocol, verify the source code and write to ./artif
 		$(VERIFIER_PARAMS) \
 		$(VERBOSITY) 2>&1 | tee $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
 
-##
-
 ## Verification:
 
 .PHONY: verify-etherscan
-verify-etherscan: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json
+verify-etherscan: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on an Etherscan compatible explorer
 	bash script/verify-contracts.sh $(CHAIN_ID) etherscan $(VERIFIER_URL) $(VERIFIER_API_KEY)
 
 .PHONY: verify-blockscout
-verify-blockscout: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json
+verify-blockscout: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on BlockScout
 	bash script/verify-contracts.sh $(CHAIN_ID) blockscout $(VERIFIER_URL) $(VERIFIER_API_KEY)
 
 .PHONY: verify-sourcify
-verify-sourcify: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json
+verify-sourcify: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on Sourcify
 	bash script/verify-contracts.sh $(CHAIN_ID) sourcify "" ""
+
+##
 
 .PHONY: refund
 refund: ## Refund the remaining balance left on the deployment account
