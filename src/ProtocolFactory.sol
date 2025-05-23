@@ -122,11 +122,11 @@ contract ProtocolFactory {
         address stagedProposalProcessorPluginRepo;
     }
 
-    /// @notice Emitted when deployOnce() has been called and the deployment is complete.
+    /// @notice Emitted when concludeDeployment() has been called and the deployment is complete.
     /// @param factory The address of the factory contract where the parameters and addresses can be retrieved.
     event ProtocolDeployed(ProtocolFactory factory);
 
-    /// @notice Thrown when attempting to call deployOnce() when the protocol is already deployed.
+    /// @notice Thrown when attempting to call concludeDeployment() when the protocol is already deployed.
     error AlreadyDeployed();
 
     /// @notice Thrown when the Management DAO has less members than minApprovals
@@ -141,8 +141,8 @@ contract ProtocolFactory {
         parameters = _parameters;
     }
 
-    function deployOnce() external {
-        if (address(deployment.daoFactory) != address(0)) {
+    function deployStep1() external {
+        if (address(deployment.managementDao) != address(0)) {
             revert AlreadyDeployed();
         }
 
@@ -151,9 +151,21 @@ contract ProtocolFactory {
 
         // Set up the ENS registry and the requested domains
         prepareEnsRegistry();
+    }
+
+    function deployStep2() external {
+        if (address(deployment.daoRegistry) != address(0)) {
+            revert AlreadyDeployed();
+        }
 
         // Deploy the OSx core contracts
         prepareOSx();
+    }
+
+    function deployStep3() external {
+        if (address(deployment.adminPluginRepo) != address(0)) {
+            revert AlreadyDeployed();
+        }
 
         preparePermissions();
 
