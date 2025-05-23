@@ -98,7 +98,9 @@ contract DeployScript is Script {
 
         factory = new ProtocolFactory(buildFactoryParams());
         vm.label(address(factory), "ProtocolFactory");
-        factory.deployOnce();
+        factory.deployStep1();
+        factory.deployStep2();
+        factory.deployStep3();
 
         // Done
         printDeployment();

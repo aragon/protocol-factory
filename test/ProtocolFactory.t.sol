@@ -140,11 +140,14 @@ contract ProtocolFactoryTest is AragonTest {
 
     function test_GivenNoPriorDeploymentOnTheFactory() external whenInvokingDeployOnce {
         // It Should emit an event with the factory address
+        factory.deployStep1();
+        factory.deployStep2();
+
         vm.expectEmit(true, true, true, true);
         emit ProtocolFactory.ProtocolDeployed(factory);
 
         // Deploy the protocol
-        factory.deployOnce();
+        factory.deployStep3();
 
         // It The deployment addresses are filled with the new contracts
         deployment = factory.getDeployment();
@@ -238,14 +241,20 @@ contract ProtocolFactoryTest is AragonTest {
     function test_RevertGiven_TheFactoryAlreadyMadeADeployment() external whenInvokingDeployOnce {
         // Do a first deployment
         ProtocolFactory.DeploymentParameters memory params0 = factory.getParameters();
-        factory.deployOnce();
+        factory.deployStep1();
+        factory.deployStep2();
+        factory.deployStep3();
 
         ProtocolFactory.DeploymentParameters memory params1 = factory.getParameters();
         ProtocolFactory.Deployment memory deployment1 = factory.getDeployment();
 
         // It Should revert
         vm.expectRevert(ProtocolFactory.AlreadyDeployed.selector);
-        factory.deployOnce();
+        factory.deployStep1();
+        vm.expectRevert(ProtocolFactory.AlreadyDeployed.selector);
+        factory.deployStep2();
+        vm.expectRevert(ProtocolFactory.AlreadyDeployed.selector);
+        factory.deployStep3();
 
         // It Parameters should remain unchanged
         ProtocolFactory.DeploymentParameters memory params2 = factory.getParameters();
@@ -269,8 +278,10 @@ contract ProtocolFactoryTest is AragonTest {
         factory = builder.build();
 
         // Fail
+        factory.deployStep1();
+        factory.deployStep2();
         vm.expectRevert(ProtocolFactory.MemberListIsTooSmall.selector);
-        factory.deployOnce();
+        factory.deployStep3();
 
         // OK
         mgmtDaoMembers = new address[](2);
@@ -281,7 +292,9 @@ contract ProtocolFactoryTest is AragonTest {
     }
 
     modifier givenAProtocolDeployment() {
-        factory.deployOnce();
+        factory.deployStep1();
+        factory.deployStep2();
+        factory.deployStep3();
         deployment = factory.getDeployment();
         deploymentParams = builder.getDeploymentParams();
 
