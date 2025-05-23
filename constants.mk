@@ -6,7 +6,7 @@
 
 ETHERSCAN_NETWORKS := mainnet sepolia holesky optimism
 BLOCKSCOUT_NETWORKS := mode
-SOURCIFY_NETWORKS := monad-testnet
+SOURCIFY_NETWORKS := monad-testnet avalanche avalanche-testnet
 ROUTESCAN_NETWORKS := corn corn-testnet
 
 AVAILABLE_NETWORKS = $(ETHERSCAN_NETWORKS) \
