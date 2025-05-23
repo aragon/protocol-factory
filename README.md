@@ -70,7 +70,7 @@ Check the available make targets to simulate and deploy the smart contracts:
 - [ ] I have cloned the official repository on my computer and I have checked out the `main` branch
 - [ ] I am using the latest official docker engine, running a Debian Linux (stable) image
   - [ ] I have run `docker run --rm -it -v .:/deployment debian:bookworm-slim`
-  - [ ] I have run `apt update && apt install -y make curl git vim neovim bc`
+  - [ ] I have run `apt update && apt install -y make curl git vim neovim bc jq`
   - [ ] I have run `curl -L https://foundry.paradigm.xyz | bash`
   - [ ] I have run `source /root/.bashrc && foundryup`
   - [ ] I have run `cd /deployment`

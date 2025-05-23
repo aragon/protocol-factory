@@ -62,6 +62,11 @@ ifneq ($(filter $(NETWORK_NAME), $(ROUTESCAN_NETWORKS)),)
 	VERIFIER_PARAMS = --verifier-url '$(VERIFIER_URL)' --etherscan-api-key $(VERIFIER_API_KEY)
 endif
 
+# When invoked like `make deploy slow=true`
+ifeq ($(slow),true)
+	SLOW_FLAG := --slow
+endif
+
 # TARGETS
 
 .PHONY: help
@@ -174,7 +179,7 @@ predeploy: ## Simulate a protocol deployment
 		$(VERBOSITY)
 
 .PHONY: deploy
-deploy: test ## Deploy the protocol, verify the source code and write to ./artifacts
+deploy: test ## Deploy the protocol, verify the code and write to ./artifacts
 	@echo "Starting the deployment"
 	@mkdir -p $(LOGS_FOLDER) $(ARTIFACTS_FOLDER)
 	forge script $(DEPLOY_SCRIPT) \
@@ -182,9 +187,25 @@ deploy: test ## Deploy the protocol, verify the source code and write to ./artif
 		--retries 10 \
 		--delay 8 \
 		--broadcast \
+		$(SLOW_FLAG) \
 		--verify \
 		$(VERIFIER_PARAMS) \
-		$(VERBOSITY) 2>&1 | tee $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
+		$(VERBOSITY) 2>&1 | tee -a $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
+
+.PHONY: resume
+resume: test ## Retry the last deployment transactions, verify the code and write to ./artifacts
+	@echo "Retrying the deployment"
+	@mkdir -p $(LOGS_FOLDER) $(ARTIFACTS_FOLDER)
+	forge script $(DEPLOY_SCRIPT) \
+		--rpc-url $(RPC_URL) \
+		--retries 10 \
+		--delay 8 \
+		--broadcast \
+		$(SLOW_FLAG) \
+		--verify \
+		--resume \
+		$(VERIFIER_PARAMS) \
+		$(VERBOSITY) 2>&1 | tee -a $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
 
 ## Verification:
 
@@ -227,3 +248,23 @@ refund: ## Refund the remaining balance left on the deployment account
 			--rpc-url $(RPC_URL) \
 			--value $$REMAINING \
 			$(REFUND_ADDRESS)
+
+# Troubleshooting and helpers
+
+.PHONY: gas-price
+gas-price:
+	cast gas-price --rpc-url $(RPC_URL)
+
+.PHONY: clean-nonces
+clean-nonces:
+	for nonce in $(nonces); do \
+	  make clean-nonce nonce=$$nonce ; \
+	done
+
+.PHONY: clean-nonce
+clean-nonce:
+	 cast send --private-key $(DEPLOYMENT_PRIVATE_KEY) \
+ 			--rpc-url $(RPC_URL) \
+ 			--value 0 \
+      --nonce $(nonce) \
+ 			$(DEPLOYMENT_ADDRESS) ; \
