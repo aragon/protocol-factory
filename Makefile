@@ -211,7 +211,7 @@ resume: test ## Retry the last deployment transactions, verify the code and writ
 ## Verification:
 
 .PHONY: verify-etherscan
-verify-etherscan: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on an Etherscan compatible explorer
+verify-etherscan: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on an Etherscan (compatible) explorer
 	forge build
 	bash script/verify-contracts.sh $(CHAIN_ID) $(VERIFIER) $(VERIFIER_URL) $(VERIFIER_API_KEY)
 
