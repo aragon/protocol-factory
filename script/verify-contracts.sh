@@ -151,7 +151,7 @@ verify_contract() {
   verify_args+=("$contract_address")
   verify_args+=("$contract_verification_path")
 
-  echo "forge verify-contract ${verify_args[*]}"
+  echo "forge verify-contract --watch ${verify_args[*]}"
   echo
   if ETHERSCAN_API_KEY="$EXPLORER_API_KEY" forge verify-contract "${verify_args[@]}" ; then
     echo "[SUCCESS] ${contract_name} (${EXPLORER_TYPE})"

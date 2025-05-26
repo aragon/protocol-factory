@@ -211,14 +211,17 @@ resume: test ## Retry the last deployment transactions, verify the code and writ
 
 .PHONY: verify-etherscan
 verify-etherscan: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on an Etherscan compatible explorer
+	forge build
 	bash script/verify-contracts.sh $(CHAIN_ID) etherscan $(VERIFIER_URL) $(VERIFIER_API_KEY)
 
 .PHONY: verify-blockscout
 verify-blockscout: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on BlockScout
-	bash script/verify-contracts.sh $(CHAIN_ID) blockscout $(VERIFIER_URL) $(VERIFIER_API_KEY)
+	forge build
+	bash script/verify-contracts.sh $(CHAIN_ID) blockscout https://$(BLOCKSCOUT_HOST_NAME)/api $(VERIFIER_API_KEY)
 
 .PHONY: verify-sourcify
 verify-sourcify: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on Sourcify
+	forge build
 	bash script/verify-contracts.sh $(CHAIN_ID) sourcify "" ""
 
 ##
