@@ -270,8 +270,8 @@ clean-nonces:
 
 .PHONY: clean-nonce
 clean-nonce:
-	 cast send --private-key $(DEPLOYMENT_PRIVATE_KEY) \
+	cast send --private-key $(DEPLOYMENT_PRIVATE_KEY) \
  			--rpc-url $(RPC_URL) \
  			--value 0 \
       --nonce $(nonce) \
- 			$(DEPLOYMENT_ADDRESS) ; \
+ 			$(DEPLOYMENT_ADDRESS)
