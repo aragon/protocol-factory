@@ -37,7 +37,7 @@ Deployment targets:
 
 Verification:
 
-- make verify-etherscan   Verify the last deployment on an Etherscan compatible explorer
+- make verify-etherscan   Verify the last deployment on an Etherscan (compatible) explorer
 - make verify-blockscout  Verify the last deployment on BlockScout
 - make verify-sourcify    Verify the last deployment on Sourcify
 
