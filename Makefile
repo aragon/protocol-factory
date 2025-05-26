@@ -37,20 +37,24 @@ endif
 
 ifneq ($(filter $(NETWORK_NAME), $(ETHERSCAN_NETWORKS)),)
 	# VERIFIER_URL := https://api.etherscan.io/api
+	VERIFIER := etherscan
 	VERIFIER_API_KEY := $(ETHERSCAN_API_KEY)
-	VERIFIER_PARAMS := --etherscan-api-key $(ETHERSCAN_API_KEY)
+	VERIFIER_PARAMS := --verifier $(VERIFIER) --etherscan-api-key $(ETHERSCAN_API_KEY)
 endif
 
 ifneq ($(filter $(NETWORK_NAME), $(BLOCKSCOUT_NETWORKS)),)
+	VERIFIER := blockscout
 	VERIFIER_URL := https://$(BLOCKSCOUT_HOST_NAME)/api\?
 	VERIFIER_API_KEY := ""
-	VERIFIER_PARAMS = --verifier blockscout --verifier-url "$(VERIFIER_URL)"
+	VERIFIER_PARAMS = --verifier $(VERIFIER) --verifier-url "$(VERIFIER_URL)"
 endif
 
 ifneq ($(filter $(NETWORK_NAME), $(SOURCIFY_NETWORKS)),)
+  VERIFIER := sourcify
 endif
 
 ifneq ($(filter $(NETWORK_NAME), $(ROUTESCAN_NETWORKS)),)
+	VERIFIER := custom
 	VERIFIER_API_KEY := "verifyContract"
 
   ifeq ($(findstring -testnet, $(NETWORK_NAME)),)
@@ -59,7 +63,7 @@ ifneq ($(filter $(NETWORK_NAME), $(ROUTESCAN_NETWORKS)),)
   	VERIFIER_URL := https://api.routescan.io/v2/network/testnet/evm/$(CHAIN_ID)/etherscan
   endif
 
-	VERIFIER_PARAMS = --verifier-url '$(VERIFIER_URL)' --etherscan-api-key $(VERIFIER_API_KEY)
+	VERIFIER_PARAMS = --verifier $(VERIFIER) --verifier-url '$(VERIFIER_URL)' --etherscan-api-key $(VERIFIER_API_KEY)
 endif
 
 # When invoked like `make deploy slow=true`
@@ -212,17 +216,17 @@ resume: test ## Retry the last deployment transactions, verify the code and writ
 .PHONY: verify-etherscan
 verify-etherscan: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on an Etherscan compatible explorer
 	forge build
-	bash script/verify-contracts.sh $(CHAIN_ID) etherscan $(VERIFIER_URL) $(VERIFIER_API_KEY)
+	bash script/verify-contracts.sh $(CHAIN_ID) $(VERIFIER) $(VERIFIER_URL) $(VERIFIER_API_KEY)
 
 .PHONY: verify-blockscout
 verify-blockscout: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on BlockScout
 	forge build
-	bash script/verify-contracts.sh $(CHAIN_ID) blockscout https://$(BLOCKSCOUT_HOST_NAME)/api $(VERIFIER_API_KEY)
+	bash script/verify-contracts.sh $(CHAIN_ID) $(VERIFIER) https://$(BLOCKSCOUT_HOST_NAME)/api $(VERIFIER_API_KEY)
 
 .PHONY: verify-sourcify
 verify-sourcify: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on Sourcify
 	forge build
-	bash script/verify-contracts.sh $(CHAIN_ID) sourcify "" ""
+	bash script/verify-contracts.sh $(CHAIN_ID) $(VERIFIER) "" ""
 
 ##
 
