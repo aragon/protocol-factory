@@ -58,7 +58,7 @@ contract ProtocolFactoryBuilder is Test {
     string pluginSubdomain = "plugin-test";
 
     ProtocolFactory.CorePlugin adminPlugin = ProtocolFactory.CorePlugin({
-        pluginSetup: new AdminSetup(),
+        pluginSetup: ADMIN_SETUP,
         release: 1,
         build: 2,
         releaseMetadataUri: "admin-release-metadata",
@@ -66,7 +66,7 @@ contract ProtocolFactoryBuilder is Test {
         subdomain: "admin-test"
     });
     ProtocolFactory.CorePlugin multisigPlugin = ProtocolFactory.CorePlugin({
-        pluginSetup: new AdminSetup(),
+        pluginSetup: MULTISIG_SETUP,
         release: 1,
         build: 3,
         releaseMetadataUri: "multisig-release-metadata",
@@ -74,7 +74,7 @@ contract ProtocolFactoryBuilder is Test {
         subdomain: "multisig-test"
     });
     ProtocolFactory.CorePlugin tokenVotingPlugin = ProtocolFactory.CorePlugin({
-        pluginSetup: new AdminSetup(),
+        pluginSetup: TOKEN_VOTING_SETUP,
         release: 1,
         build: 3,
         releaseMetadataUri: "token-voting-release-metadata",
@@ -82,7 +82,7 @@ contract ProtocolFactoryBuilder is Test {
         subdomain: "token-voting-test"
     });
     ProtocolFactory.CorePlugin stagedProposalProcessorPlugin = ProtocolFactory.CorePlugin({
-        pluginSetup: new AdminSetup(),
+        pluginSetup: SPP_SETUP,
         release: 1,
         build: 1,
         releaseMetadataUri: "spp-release-metadata",
@@ -126,7 +126,7 @@ contract ProtocolFactoryBuilder is Test {
         string memory _subdomain
     ) public returns (ProtocolFactoryBuilder) {
         adminPlugin = ProtocolFactory.CorePlugin({
-            pluginSetup: new AdminSetup(),
+            pluginSetup: ADMIN_SETUP,
             release: _release,
             build: _build,
             releaseMetadataUri: _releaseMetadataUri,
@@ -144,7 +144,7 @@ contract ProtocolFactoryBuilder is Test {
         string memory _subdomain
     ) public returns (ProtocolFactoryBuilder) {
         multisigPlugin = ProtocolFactory.CorePlugin({
-            pluginSetup: new MultisigSetup(),
+            pluginSetup: MULTISIG_SETUP,
             release: _release,
             build: _build,
             releaseMetadataUri: _releaseMetadataUri,
@@ -162,12 +162,7 @@ contract ProtocolFactoryBuilder is Test {
         string memory _subdomain
     ) public returns (ProtocolFactoryBuilder) {
         tokenVotingPlugin = ProtocolFactory.CorePlugin({
-            pluginSetup: new TokenVotingSetup(
-                new GovernanceERC20(
-                    IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0), true)
-                ),
-                new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
-            ),
+            pluginSetup: TOKEN_VOTING_SETUP,
             release: _release,
             build: _build,
             releaseMetadataUri: _releaseMetadataUri,
@@ -185,7 +180,7 @@ contract ProtocolFactoryBuilder is Test {
         string memory _subdomain
     ) public returns (ProtocolFactoryBuilder) {
         stagedProposalProcessorPlugin = ProtocolFactory.CorePlugin({
-            pluginSetup: new StagedProposalProcessorSetup(),
+            pluginSetup: SPP_SETUP,
             release: _release,
             build: _build,
             releaseMetadataUri: _releaseMetadataUri,
