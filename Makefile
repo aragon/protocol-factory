@@ -11,11 +11,13 @@ SOLC_VERSION := $(shell cat foundry.toml | grep solc | cut -d= -f2 | xargs echo 
 DEPLOY_SCRIPT := script/Deploy.s.sol:DeployScript
 SUPPORTED_VERIFIERS := etherscan blockscout sourcify routescan-mainnet routescan-testnet
 MAKE_TEST_TREE_CMD := deno run ./test/scripts/make-test-tree.ts
+VERIFY_CONTRACTS_SCRIPT := script/verify-contracts.sh
 TEST_TREE_MARKDOWN := TESTS.md
 ARTIFACTS_FOLDER := ./artifacts
 LOGS_FOLDER := ./logs
 VERBOSITY := -vvv
 
+# Remove quotes
 NETWORK_NAME:=$(strip $(subst ',, $(subst ",,$(NETWORK_NAME))))
 CHAIN_ID:=$(strip $(subst ',, $(subst ",,$(CHAIN_ID))))
 VERIFIER:=$(strip $(subst ',, $(subst ",,$(VERIFIER))))
@@ -213,17 +215,17 @@ resume: test ## Retry the last deployment transactions, verify the code and writ
 .PHONY: verify-etherscan
 verify-etherscan: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on an Etherscan compatible explorer
 	forge build
-	bash script/verify-contracts.sh $(CHAIN_ID) $(VERIFIER) $(VERIFIER_URL) $(VERIFIER_API_KEY)
+	bash $(VERIFY_CONTRACTS_SCRIPT) $(CHAIN_ID) $(VERIFIER) $(VERIFIER_URL) $(VERIFIER_API_KEY)
 
 .PHONY: verify-blockscout
 verify-blockscout: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on BlockScout
 	forge build
-	bash script/verify-contracts.sh $(CHAIN_ID) $(VERIFIER) https://$(BLOCKSCOUT_HOST_NAME)/api $(VERIFIER_API_KEY)
+	bash $(VERIFY_CONTRACTS_SCRIPT) $(CHAIN_ID) $(VERIFIER) https://$(BLOCKSCOUT_HOST_NAME)/api $(VERIFIER_API_KEY)
 
 .PHONY: verify-sourcify
 verify-sourcify: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on Sourcify
 	forge build
-	bash script/verify-contracts.sh $(CHAIN_ID) $(VERIFIER) "" ""
+	bash $(VERIFY_CONTRACTS_SCRIPT) $(CHAIN_ID) $(VERIFIER) "" ""
 
 ##
 
