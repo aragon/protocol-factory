@@ -101,6 +101,9 @@ contract ProtocolFactoryTest is AragonTest {
         );
 
         vm.label(address(this), "TestRunner");
+
+        // To avoid issues with clock modes (e.g., block.timestamp == block.number)
+        vm.warp(block.timestamp + 1 days);
     }
 
     function test_WhenDeployingTheProtocolFactory() external {
