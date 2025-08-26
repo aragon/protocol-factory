@@ -76,7 +76,7 @@ contract ProtocolFactoryBuilder is Test {
     ProtocolFactory.CorePlugin tokenVotingPlugin = ProtocolFactory.CorePlugin({
         pluginSetup: TOKEN_VOTING_SETUP,
         release: 1,
-        build: 3,
+        build: 4,
         releaseMetadataUri: "token-voting-release-metadata",
         buildMetadataUri: "token-voting-build-metadata",
         subdomain: "token-voting-test"
