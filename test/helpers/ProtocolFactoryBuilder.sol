@@ -20,8 +20,8 @@ import {ENSHelper} from "../../src/helpers/ENSHelper.sol";
 import {AdminSetup} from "@aragon/admin-plugin/AdminSetup.sol";
 import {MultisigSetup} from "@aragon/multisig-plugin/MultisigSetup.sol";
 import {TokenVotingSetup} from "@aragon/token-voting-plugin/TokenVotingSetup.sol";
-import {GovernanceERC20} from "@aragon/token-voting-plugin/ERC20/governance/GovernanceERC20.sol";
-import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/ERC20/governance/GovernanceWrappedERC20.sol";
+import {GovernanceERC20} from "@aragon/token-voting-plugin/erc20/GovernanceERC20.sol";
+import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/erc20/GovernanceWrappedERC20.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
 
@@ -46,7 +46,9 @@ contract ProtocolFactoryBuilder is Test {
     AdminSetup ADMIN_SETUP = new AdminSetup();
     MultisigSetup MULTISIG_SETUP = new MultisigSetup();
     TokenVotingSetup TOKEN_VOTING_SETUP = new TokenVotingSetup(
-        new GovernanceERC20(IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))),
+        new GovernanceERC20(
+            IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0), true)
+        ),
         new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
     );
     StagedProposalProcessorSetup SPP_SETUP = new StagedProposalProcessorSetup();
@@ -162,7 +164,7 @@ contract ProtocolFactoryBuilder is Test {
         tokenVotingPlugin = ProtocolFactory.CorePlugin({
             pluginSetup: new TokenVotingSetup(
                 new GovernanceERC20(
-                    IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
+                    IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0), true)
                 ),
                 new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
             ),
