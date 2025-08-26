@@ -37,8 +37,8 @@ import {ENSHelper} from "../src/helpers/ENSHelper.sol";
 import {Admin} from "@aragon/admin-plugin/Admin.sol";
 import {Multisig} from "@aragon/multisig-plugin/Multisig.sol";
 import {TokenVoting} from "@aragon/token-voting-plugin/TokenVoting.sol";
-import {MajorityVotingBase} from "@aragon/token-voting-plugin/MajorityVotingBase.sol";
-import {IMajorityVoting} from "@aragon/token-voting-plugin/IMajorityVoting.sol";
+import {MajorityVotingBase} from "@aragon/token-voting-plugin/base/MajorityVotingBase.sol";
+import {IMajorityVoting} from "@aragon/token-voting-plugin/base/IMajorityVoting.sol";
 import {StagedProposalProcessor} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 import {RuledCondition} from "@aragon/osx-commons-contracts/src/permission/condition/extensions/RuledCondition.sol";
 
@@ -46,8 +46,8 @@ import {AdminSetup} from "@aragon/admin-plugin/AdminSetup.sol";
 import {MultisigSetup} from "@aragon/multisig-plugin/MultisigSetup.sol";
 import {TokenVotingSetup} from "@aragon/token-voting-plugin/TokenVotingSetup.sol";
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
-import {GovernanceERC20} from "@aragon/token-voting-plugin/ERC20/governance/GovernanceERC20.sol";
-import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/ERC20/governance/GovernanceWrappedERC20.sol";
+import {GovernanceERC20} from "@aragon/token-voting-plugin/erc20/GovernanceERC20.sol";
+import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/erc20/GovernanceWrappedERC20.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 contract ProtocolFactoryTest is AragonTest {
@@ -101,6 +101,9 @@ contract ProtocolFactoryTest is AragonTest {
         );
 
         vm.label(address(this), "TestRunner");
+
+        // To avoid issues with clock modes (e.g., block.timestamp == block.number)
+        vm.warp(block.timestamp + 1 days);
     }
 
     function test_WhenDeployingTheProtocolFactory() external {
@@ -965,7 +968,7 @@ contract ProtocolFactoryTest is AragonTest {
         IPlugin.TargetConfig memory targetConfig =
             IPlugin.TargetConfig({target: address(targetDao), operation: IPlugin.Operation.Call});
         GovernanceERC20.MintSettings memory mintSettings =
-            GovernanceERC20.MintSettings(new address[](0), new uint256[](0));
+            GovernanceERC20.MintSettings(new address[](0), new uint256[](0), true);
 
         bytes memory setupData = abi.encode(
             votingSettings,
@@ -1009,7 +1012,7 @@ contract ProtocolFactoryTest is AragonTest {
             IPlugin.TargetConfig({target: address(targetDao), operation: IPlugin.Operation.Call});
 
         GovernanceERC20.MintSettings memory mintSettings =
-            GovernanceERC20.MintSettings(new address[](2), new uint256[](2));
+            GovernanceERC20.MintSettings(new address[](2), new uint256[](2), true);
         mintSettings.receivers[0] = alice;
         mintSettings.amounts[0] = 1 ether;
         mintSettings.receivers[1] = bob;
@@ -1865,7 +1868,7 @@ contract ProtocolFactoryTest is AragonTest {
         address newTokenVotingSetup = address(
             new TokenVotingSetup(
                 new GovernanceERC20(
-                    IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0))
+                    IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0), true)
                 ),
                 new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
             )
