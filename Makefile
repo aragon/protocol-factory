@@ -39,7 +39,7 @@ endif
 # Conditional assignments
 
 ifeq ($(VERIFIER), etherscan)
-	# VERIFIER_URL := https://api.etherscan.io/api
+	VERIFIER_URL := https://api.etherscan.io/api
 	VERIFIER_API_KEY := $(ETHERSCAN_API_KEY)
 	VERIFIER_PARAMS := --verifier $(VERIFIER) --etherscan-api-key $(ETHERSCAN_API_KEY)
 endif
@@ -70,6 +70,15 @@ ifeq ($(slow),true)
 	SLOW_FLAG := --slow
 endif
 
+# Additional chain-dependent params (Foundry)
+ifeq ($(CHAIN_ID),88888)
+	FORGE_SCRIPT_CUSTOM_PARAMS := --priority-gas-price 1000000000 --gas-price 5500000000000
+else ifeq ($(CHAIN_ID),300)
+	FORGE_BUILD_CUSTOM_PARAMS := --zksync
+else ifeq ($(CHAIN_ID),324)
+	FORGE_BUILD_CUSTOM_PARAMS := --zksync
+endif
+
 # TARGETS
 
 .PHONY: help
@@ -93,7 +102,7 @@ init: $(MULTISIG_MEMBERS_FILE) ## Check the dependencies and prompt to install i
 	@which bulloak > /dev/null && echo "bulloak is available" || echo "Install bulloak:  cargo install bulloak"
 
 	@which forge > /dev/null || curl -L https://foundry.paradigm.xyz | bash
-	@forge build
+	@forge build $(FORGE_BUILD_CUSTOM_PARAMS)
 	@which lcov > /dev/null || echo "Note: lcov can be installed by running 'sudo apt install lcov'"
 
 .PHONY: clean
@@ -115,7 +124,7 @@ test: export ETHERSCAN_API_KEY=
 
 .PHONY: test
 test: ## Run unit tests, locally
-	forge test $(VERBOSITY)
+	forge test $(FORGE_BUILD_CUSTOM_PARAMS) $(VERBOSITY)
 
 test-coverage: report/index.html ## Generate an HTML coverage report under ./report
 	@which open > /dev/null && open report/index.html || true
@@ -179,6 +188,8 @@ predeploy: ## Simulate a protocol deployment
 	@echo "Simulating the deployment"
 	forge script $(DEPLOY_SCRIPT) \
 		--rpc-url $(RPC_URL) \
+		$(FORGE_BUILD_CUSTOM_PARAMS) \
+		$(FORGE_SCRIPT_CUSTOM_PARAMS) \
 		$(VERBOSITY)
 
 .PHONY: deploy
@@ -190,9 +201,11 @@ deploy: test ## Deploy the protocol, verify the code and write to ./artifacts
 		--retries 10 \
 		--delay 8 \
 		--broadcast \
-		$(SLOW_FLAG) \
 		--verify \
 		$(VERIFIER_PARAMS) \
+		$(SLOW_FLAG) \
+		$(FORGE_BUILD_CUSTOM_PARAMS) \
+		$(FORGE_SCRIPT_CUSTOM_PARAMS) \
 		$(VERBOSITY) 2>&1 | tee -a $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
 
 .PHONY: resume
@@ -204,27 +217,29 @@ resume: test ## Retry the last deployment transactions, verify the code and writ
 		--retries 10 \
 		--delay 8 \
 		--broadcast \
-		$(SLOW_FLAG) \
 		--verify \
 		--resume \
 		$(VERIFIER_PARAMS) \
+		$(SLOW_FLAG) \
+		$(FORGE_BUILD_CUSTOM_PARAMS) \
+		$(FORGE_SCRIPT_CUSTOM_PARAMS) \
 		$(VERBOSITY) 2>&1 | tee -a $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
 
 ## Verification:
 
 .PHONY: verify-etherscan
 verify-etherscan: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on an Etherscan compatible explorer
-	forge build
+	forge build $(FORGE_BUILD_CUSTOM_PARAMS)
 	bash $(VERIFY_CONTRACTS_SCRIPT) $(CHAIN_ID) $(VERIFIER) $(VERIFIER_URL) $(VERIFIER_API_KEY)
 
 .PHONY: verify-blockscout
 verify-blockscout: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on BlockScout
-	forge build
+	forge build $(FORGE_BUILD_CUSTOM_PARAMS)
 	bash $(VERIFY_CONTRACTS_SCRIPT) $(CHAIN_ID) $(VERIFIER) https://$(BLOCKSCOUT_HOST_NAME)/api $(VERIFIER_API_KEY)
 
 .PHONY: verify-sourcify
 verify-sourcify: broadcast/Deploy.s.sol/$(CHAIN_ID)/run-latest.json ## Verify the last deployment on Sourcify
-	forge build
+	forge build $(FORGE_BUILD_CUSTOM_PARAMS)
 	bash $(VERIFY_CONTRACTS_SCRIPT) $(CHAIN_ID) $(VERIFIER) "" ""
 
 ##
