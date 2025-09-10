@@ -8,8 +8,11 @@ fs_permissions = [
     { access = "write", path = "./artifacts" },
 ]
 
-# evm_version = "shanghai"
+# General
 evm_version = "cancun"
+# Chiliz
+# evm_version = "shanghai"
+
 optimizer = true
 optimizer-runs = 200
 solc = "0.8.28"
