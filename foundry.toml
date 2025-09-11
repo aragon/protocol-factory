@@ -12,6 +12,8 @@ fs_permissions = [
 evm_version = "cancun"
 # Chiliz
 # evm_version = "shanghai"
+# Peaq
+# evm_version = "london"
 
 optimizer = true
 optimizer-runs = 200
