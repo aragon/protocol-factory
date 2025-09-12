@@ -65,17 +65,14 @@ ifneq ($(filter $(VERIFIER), routescan-mainnet routescan-testnet),)
 	VERIFIER_PARAMS = --verifier $(VERIFIER) --verifier-url '$(VERIFIER_URL)' --etherscan-api-key $(VERIFIER_API_KEY)
 endif
 
-# When invoked like `make deploy slow=true`
-ifeq ($(slow),true)
-	SLOW_FLAG := --slow
-endif
-
 # Additional chain-dependent params (Foundry)
 ifeq ($(CHAIN_ID),88888)
 	FORGE_SCRIPT_CUSTOM_PARAMS := --priority-gas-price 1000000000 --gas-price 5500000000000
 else ifeq ($(CHAIN_ID),300)
+	FORGE_SCRIPT_CUSTOM_PARAMS := --slow
 	FORGE_BUILD_CUSTOM_PARAMS := --zksync
 else ifeq ($(CHAIN_ID),324)
+	FORGE_SCRIPT_CUSTOM_PARAMS := --slow
 	FORGE_BUILD_CUSTOM_PARAMS := --zksync
 endif
 
@@ -110,7 +107,7 @@ clean: ## Clean the build artifacts
 	forge clean
 	rm -f $(TEST_TREE_FILES)
 	rm -f $(TEST_TREE_MARKDOWN)
-	rm -Rf ./out/* lcov.info* ./report/*
+	rm -Rf ./out ./zkout lcov.info* ./report
 
 $(MULTISIG_MEMBERS_FILE):
 	@echo "Creating $(@)"
@@ -203,7 +200,6 @@ deploy: test ## Deploy the protocol, verify the code and write to ./artifacts
 		--broadcast \
 		--verify \
 		$(VERIFIER_PARAMS) \
-		$(SLOW_FLAG) \
 		$(FORGE_BUILD_CUSTOM_PARAMS) \
 		$(FORGE_SCRIPT_CUSTOM_PARAMS) \
 		$(VERBOSITY) 2>&1 | tee -a $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
@@ -220,7 +216,6 @@ resume: test ## Retry the last deployment transactions, verify the code and writ
 		--verify \
 		--resume \
 		$(VERIFIER_PARAMS) \
-		$(SLOW_FLAG) \
 		$(FORGE_BUILD_CUSTOM_PARAMS) \
 		$(FORGE_SCRIPT_CUSTOM_PARAMS) \
 		$(VERBOSITY) 2>&1 | tee -a $(LOGS_FOLDER)/$(DEPLOYMENT_LOG_FILE)
