@@ -268,11 +268,18 @@ refund: ## Refund the remaining balance left on the deployment account
 			--value $$REMAINING \
 			$(REFUND_ADDRESS)
 
-# Troubleshooting and helpers
+# Other: Helpers and troubleshooting
 
 .PHONY: gas-price
 gas-price:
-	cast gas-price --rpc-url $(RPC_URL)
+	@echo "Gas price ($(NETWORK_NAME)):"
+	@cast gas-price --rpc-url $(RPC_URL)
+
+.PHONY: balance
+balance:
+	@echo "Balance of $(DEPLOYMENT_ADDRESS) ($(NETWORK_NAME)):"
+	@BALANCE=$$(cast balance $(DEPLOYMENT_ADDRESS) --rpc-url $(RPC_URL)) && \
+		cast --to-unit $$BALANCE ether
 
 .PHONY: clean-nonces
 clean-nonces:
@@ -285,5 +292,5 @@ clean-nonce:
 	cast send --private-key $(DEPLOYMENT_PRIVATE_KEY) \
  			--rpc-url $(RPC_URL) \
  			--value 0 \
-      --nonce $(nonce) \
+            --nonce $(nonce) \
  			$(DEPLOYMENT_ADDRESS)
