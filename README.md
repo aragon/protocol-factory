@@ -81,7 +81,6 @@ Check the available make targets to simulate and deploy the smart contracts:
   - [ ] I have created a new burner wallet with `cast wallet new` and copied the private key to `DEPLOYMENT_PRIVATE_KEY` within `.env`
   - [ ] I have set the correct `RPC_URL` for the network
   - [ ] I have set the correct `CHAIN_ID` for the network
-  - [ ] The value of `NETWORK_NAME` is listed within `constants.mk`, at the appropriate place
   - [ ] I have set `ETHERSCAN_API_KEY` or `BLOCKSCOUT_HOST_NAME` (when relevant to the target network)
   - [ ] `MANAGEMENT_DAO_MIN_APPROVALS` has the right value
   - [ ] The file pointed by `MANAGEMENT_DAO_MEMBERS_FILE_NAME` contains the appropriate addresses
