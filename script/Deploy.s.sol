@@ -47,8 +47,8 @@ contract DeployScript is Script {
     string DEFAULT_ADMIN_BUILD_METADATA = "ipfs://bafkreifijshftf47q5mtoibfvwkzv42reqf4uddi46i7kcblt6bpsvgii4";
     string DEFAULT_MULTISIG_RELEASE_METADATA = "ipfs://bafkreiesxfvwf7qphbpw2epmabrrz2alwo66fso7tjx3cbt63k4xzec3ma";
     string DEFAULT_MULTISIG_BUILD_METADATA = "ipfs://bafkreiaipjj2ryy2ui77crwmgbamjkmr6xbdvrviylh4z4kf54sq2etvgu";
-    string DEFAULT_TOKEN_VOTING_RELEASE_METADATA = "ipfs://bafkreidwa5z5vi2o43msjwfinxapf3zfpshapdaw6kksdz52sffb4p4oqi";
-    string DEFAULT_TOKEN_VOTING_BUILD_METADATA = "ipfs://bafkreifsn2562ftambmmfoqa64wfxviu4g47evmcj5ydsjdmmsmqhqrn3i";
+    string DEFAULT_TOKEN_VOTING_RELEASE_METADATA = "ipfs://QmWjZArvePnMPgbfKAMW3TidbqHEy68UV6SvRBhiaygGta";
+    string DEFAULT_TOKEN_VOTING_BUILD_METADATA = "ipfs://QmfXUy5Lc4iqg8DvgWdSSD2ZhCmCGvE2WTdWYFE9sosCRc";
     string DEFAULT_SPP_RELEASE_METADATA = "ipfs://bafkreif23p6yw325rkwwlhgkudiasvq64lonqmfnt7ls5ksfam5hedcb4m";
     string DEFAULT_SPP_BUILD_METADATA = "ipfs://bafkreifia6hhz7klfbaqawd4vcplkoiesycbmrf5c2x24zfuivyn35mfsu";
     string DEFAULT_MANAGEMENT_DAO_METADATA = "ipfs://bafkreibemfrxeuwfaono6k37vbi66fctcwtioiyctrl4fvqtqmiodt2mle";
@@ -74,7 +74,7 @@ contract DeployScript is Script {
     modifier broadcast() {
         uint256 privKey = vm.envUint("DEPLOYMENT_PRIVATE_KEY");
         vm.startBroadcast(privKey);
-        console.log("OSX version", VERSION);
+        console.log("OSx version", VERSION);
         console.log("- Deployment wallet:", vm.addr(privKey));
         console.log("- Chain ID:", block.chainid);
         console.log();
