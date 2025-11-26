@@ -230,6 +230,7 @@ jq -r "$jq_query" "$RUN_LATEST_JSON_PATH" | while IFS='|' read -r contract_addre
                   "$contract_verification_path" \
                   "$constructor_args_hex" \
                   "$libraries_cli_string"
+  sleep 5
 done
 
 echo ""
