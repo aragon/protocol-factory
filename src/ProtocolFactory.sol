@@ -181,8 +181,7 @@ contract ProtocolFactory {
 
     function prepareRawManagementDao() internal {
         DAO managementDao = DAO(
-            payable(
-                createProxyAndCall(
+            payable(createProxyAndCall(
                     parameters.osxImplementations.daoBase,
                     abi.encodeCall(
                         DAO.initialize,
@@ -193,8 +192,7 @@ contract ProtocolFactory {
                             "" // DAO URI
                         )
                     )
-                )
-            )
+                ))
         );
         deployment.managementDao = address(managementDao);
 
@@ -232,14 +230,13 @@ contract ProtocolFactory {
         bytes32 PLUGIN_DAO_ETH_NODE;
 
         // Set up an ENS environment
-        (deployment.ensRegistry, deployment.publicResolver, DAO_ETH_NODE, PLUGIN_DAO_ETH_NODE) = parameters
-            .helperFactories
-            .ensHelper
-            .deployStatic(
-            address(deployment.managementDao), // ENSRegistry owner
-            bytes(parameters.ensParameters.daoRootDomain),
-            bytes(parameters.ensParameters.pluginSubdomain)
-        );
+        (deployment.ensRegistry, deployment.publicResolver, DAO_ETH_NODE, PLUGIN_DAO_ETH_NODE) =
+            parameters.helperFactories.ensHelper
+                .deployStatic(
+                    address(deployment.managementDao), // ENSRegistry owner
+                    bytes(parameters.ensParameters.daoRootDomain),
+                    bytes(parameters.ensParameters.pluginSubdomain)
+                );
 
         // Deploy the dao.eth ENSSubdomainRegistrar
         deployment.daoSubdomainRegistrar = createProxyAndCall(
@@ -379,9 +376,8 @@ contract ProtocolFactory {
     function preparePluginRepo(CorePlugin memory corePlugin) internal returns (address pluginRepo) {
         // Make it owned by the Management DAO upfront
         pluginRepo = address(
-            PluginRepoFactory(deployment.pluginRepoFactory).createPluginRepo(
-                corePlugin.subdomain, deployment.managementDao
-            )
+            PluginRepoFactory(deployment.pluginRepoFactory)
+                .createPluginRepo(corePlugin.subdomain, deployment.managementDao)
         );
 
         // Make the Management DAO publish the initial version(s)
@@ -429,9 +425,8 @@ contract ProtocolFactory {
         );
 
         // Register the ManagementDAO on the DaoRegistry
-        DAORegistry(deployment.daoRegistry).register(
-            managementDao, address(this), parameters.ensParameters.managementDaoSubdomain
-        );
+        DAORegistry(deployment.daoRegistry)
+            .register(managementDao, address(this), parameters.ensParameters.managementDaoSubdomain);
 
         // Revoke the temporary permission
         managementDao.revoke(
@@ -460,8 +455,8 @@ contract ProtocolFactory {
         IPluginSetup.PreparedSetupData memory preparedSetupData;
         (deployment.managementDaoMultisig, preparedSetupData) = PluginSetupProcessor(deployment.pluginSetupProcessor)
             .prepareInstallation(
-            deployment.managementDao, PluginSetupProcessor.PrepareInstallationParams(pluginSetupRef, setupData)
-        );
+                deployment.managementDao, PluginSetupProcessor.PrepareInstallationParams(pluginSetupRef, setupData)
+            );
 
         // Grant temporary permissions to apply the installation
         managementDao.grant(address(managementDao), deployment.pluginSetupProcessor, managementDao.ROOT_PERMISSION_ID());
@@ -472,15 +467,16 @@ contract ProtocolFactory {
         );
 
         // Install the plugin
-        PluginSetupProcessor(deployment.pluginSetupProcessor).applyInstallation(
-            address(managementDao),
-            PluginSetupProcessor.ApplyInstallationParams(
-                pluginSetupRef,
-                deployment.managementDaoMultisig,
-                preparedSetupData.permissions,
-                hashHelpers(preparedSetupData.helpers)
-            )
-        );
+        PluginSetupProcessor(deployment.pluginSetupProcessor)
+            .applyInstallation(
+                address(managementDao),
+                PluginSetupProcessor.ApplyInstallationParams(
+                    pluginSetupRef,
+                    deployment.managementDaoMultisig,
+                    preparedSetupData.permissions,
+                    hashHelpers(preparedSetupData.helpers)
+                )
+            );
 
         // Remove the temporary permissions
         managementDao.revoke(
@@ -495,17 +491,19 @@ contract ProtocolFactory {
 
     function removePermissions() internal {
         // Remove the execute permission from the factory
-        DAO(payable(deployment.managementDao)).revoke(
-            deployment.managementDao, // where
-            address(this), // who
-            DAO(payable(deployment.managementDao)).EXECUTE_PERMISSION_ID() // permission
-        );
+        DAO(payable(deployment.managementDao))
+            .revoke(
+                deployment.managementDao, // where
+                address(this), // who
+                DAO(payable(deployment.managementDao)).EXECUTE_PERMISSION_ID() // permission
+            );
         // Remove the ROOT permission from the factory
-        DAO(payable(deployment.managementDao)).revoke(
-            deployment.managementDao, // where
-            address(this), // who
-            DAO(payable(deployment.managementDao)).ROOT_PERMISSION_ID() // permission
-        );
+        DAO(payable(deployment.managementDao))
+            .revoke(
+                deployment.managementDao, // where
+                address(this), // who
+                DAO(payable(deployment.managementDao)).ROOT_PERMISSION_ID() // permission
+            );
     }
 
     function createProxyAndCall(address _logic, bytes memory _data) internal returns (address) {

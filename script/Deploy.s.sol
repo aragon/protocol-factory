@@ -203,10 +203,7 @@ contract DeployScript is Script {
                 globalExecutor: address(globalExecutor)
             }),
             helperFactories: ProtocolFactory.HelperFactories({
-                daoHelper: daoHelper,
-                pluginRepoHelper: pluginRepoHelper,
-                pspHelper: pspHelper,
-                ensHelper: ensHelper
+                daoHelper: daoHelper, pluginRepoHelper: pluginRepoHelper, pspHelper: pspHelper, ensHelper: ensHelper
             }),
             ensParameters: ProtocolFactory.EnsParameters({
                 daoRootDomain: vm.envOr("DAO_ENS_DOMAIN", DEFAULT_DAO_ENS_DOMAIN),
@@ -226,16 +223,22 @@ contract DeployScript is Script {
                     pluginSetup: multisigSetup,
                     release: 1,
                     build: 3,
-                    releaseMetadataUri: vm.envOr("MULTISIG_PLUGIN_RELEASE_METADATA_URI", DEFAULT_MULTISIG_RELEASE_METADATA),
+                    releaseMetadataUri: vm.envOr(
+                        "MULTISIG_PLUGIN_RELEASE_METADATA_URI", DEFAULT_MULTISIG_RELEASE_METADATA
+                    ),
                     buildMetadataUri: vm.envOr("MULTISIG_PLUGIN_BUILD_METADATA_URI", DEFAULT_MULTISIG_BUILD_METADATA),
                     subdomain: vm.envOr("MULTISIG_PLUGIN_SUBDOMAIN", string("multisig"))
                 }),
                 tokenVotingPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: tokenVotingSetup,
                     release: 1,
-                    build: 3,
-                    releaseMetadataUri: vm.envOr("TOKEN_VOTING_PLUGIN_RELEASE_METADATA_URI", DEFAULT_TOKEN_VOTING_RELEASE_METADATA),
-                    buildMetadataUri: vm.envOr("TOKEN_VOTING_PLUGIN_BUILD_METADATA_URI", DEFAULT_TOKEN_VOTING_BUILD_METADATA),
+                    build: 4,
+                    releaseMetadataUri: vm.envOr(
+                        "TOKEN_VOTING_PLUGIN_RELEASE_METADATA_URI", DEFAULT_TOKEN_VOTING_RELEASE_METADATA
+                    ),
+                    buildMetadataUri: vm.envOr(
+                        "TOKEN_VOTING_PLUGIN_BUILD_METADATA_URI", DEFAULT_TOKEN_VOTING_BUILD_METADATA
+                    ),
                     subdomain: vm.envOr("TOKEN_VOTING_PLUGIN_SUBDOMAIN", string("token-voting"))
                 }),
                 stagedProposalProcessorPlugin: ProtocolFactory.CorePlugin({
@@ -245,7 +248,9 @@ contract DeployScript is Script {
                     releaseMetadataUri: vm.envOr(
                         "STAGED_PROPOSAL_PROCESSOR_PLUGIN_RELEASE_METADATA_URI", DEFAULT_SPP_RELEASE_METADATA
                     ),
-                    buildMetadataUri: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_BUILD_METADATA_URI", DEFAULT_SPP_BUILD_METADATA),
+                    buildMetadataUri: vm.envOr(
+                        "STAGED_PROPOSAL_PROCESSOR_PLUGIN_BUILD_METADATA_URI", DEFAULT_SPP_BUILD_METADATA
+                    ),
                     subdomain: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_SUBDOMAIN", string("spp"))
                 })
             }),
