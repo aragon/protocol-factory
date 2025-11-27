@@ -31,24 +31,27 @@ contract ENSHelper is IENSHelper {
 
         // Hold temporary ownership to set the resolver
 
-        ETH_NODE = ENSRegistry(ensRegistry).setSubnodeOwner(
-            ROOT_NODE,
-            ETH_LABEL_HASH,
-            address(this) // owner
-        );
+        ETH_NODE = ENSRegistry(ensRegistry)
+            .setSubnodeOwner(
+                ROOT_NODE,
+                ETH_LABEL_HASH,
+                address(this) // owner
+            );
 
-        DAO_ETH_NODE = ENSRegistry(ensRegistry).setSubnodeOwner(
-            ETH_NODE,
-            DAO_LABEL_HASH,
-            address(this) // owner
-        );
+        DAO_ETH_NODE = ENSRegistry(ensRegistry)
+            .setSubnodeOwner(
+                ETH_NODE,
+                DAO_LABEL_HASH,
+                address(this) // owner
+            );
         ENSRegistry(ensRegistry).setResolver(DAO_ETH_NODE, address(publicResolver));
 
-        PLUGIN_DAO_ETH_NODE = ENSRegistry(ensRegistry).setSubnodeOwner(
-            DAO_ETH_NODE,
-            PLUGIN_DAO_LABEL_HASH,
-            address(this) // owner
-        );
+        PLUGIN_DAO_ETH_NODE = ENSRegistry(ensRegistry)
+            .setSubnodeOwner(
+                DAO_ETH_NODE,
+                PLUGIN_DAO_LABEL_HASH,
+                address(this) // owner
+            );
         ENSRegistry(ensRegistry).setResolver(PLUGIN_DAO_ETH_NODE, address(publicResolver));
 
         // Set the final owner (reverse order)

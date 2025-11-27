@@ -91,9 +91,7 @@ contract ProtocolFactoryBuilder is Test {
     });
 
     ProtocolFactory.ManagementDaoParameters managementDaoParams = ProtocolFactory.ManagementDaoParameters({
-        metadataUri: "ipfs://mgmt-dao-metadata",
-        members: new address[](0),
-        minApprovals: 3
+        metadataUri: "ipfs://mgmt-dao-metadata", members: new address[](0), minApprovals: 3
     });
 
     // GETTERS

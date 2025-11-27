@@ -291,7 +291,7 @@ ProtocolFactory.DeploymentParameters memory params = ProtocolFactory.DeploymentP
         tokenVotingPlugin: ProtocolFactory.CorePlugin({
             pluginSetup: tokenVotingSetup,
             release: 1,
-            build: 3,
+            build: 4,
             releaseMetadataUri: releaseMetadataUri,
             buildMetadataUri: buildMetadataUri,
             subdomain: subdomain

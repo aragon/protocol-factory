@@ -191,9 +191,7 @@ contract TestUpgradeScript is Script {
         // Upgrade the DaoRegistry to the new implementation
         address newDaoRegistryBase = address(new DAORegistry());
         actions[5] = Action({
-            to: address(daoRegistry),
-            value: 0,
-            data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (newDaoRegistryBase))
+            to: address(daoRegistry), value: 0, data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (newDaoRegistryBase))
         });
         // Upgrade the PluginRepoRegistry to the new implementation
         address newPluginRepoRegistryBase = address(new PluginRepoRegistry());
@@ -208,9 +206,7 @@ contract TestUpgradeScript is Script {
         // Upgrade the management DAO to a new implementation
         address newDaoBase = address(payable(new DAO()));
         actions[7] = Action({
-            to: address(managementDao),
-            value: 0,
-            data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (newDaoBase))
+            to: address(managementDao), value: 0, data: abi.encodeCall(UUPSUpgradeable.upgradeTo, (newDaoBase))
         });
 
         // PROPOSAL
