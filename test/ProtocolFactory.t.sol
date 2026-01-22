@@ -280,8 +280,111 @@ contract ProtocolFactoryTest is AragonTest {
         factory = builder.build();
     }
 
-    modifier givenAProtocolDeployment() {
+    // PHASED DEPLOYMENT TESTS
+
+    modifier whenInvokingPhasedDeployment() {
+        _;
+    }
+
+    function test_PhasedDeploymentCompletesSuccessfully() external whenInvokingPhasedDeployment {
+        // Verify initial phase
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.NotStarted));
+
+        // Deploy phase 1
+        factory.deployPhase1();
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Phase1Complete));
+
+        // Deploy phase 2
+        factory.deployPhase2();
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Phase2Complete));
+
+        // Deploy phase 3 - expect event
+        vm.expectEmit(true, true, true, true);
+        emit ProtocolFactory.ProtocolDeployed(factory);
+        factory.deployPhase3();
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Complete));
+
+        // Verify deployment completed
+        deployment = factory.getDeployment();
+        assertNotEq(deployment.daoFactory, address(0));
+        assertNotEq(deployment.managementDao, address(0));
+        assertNotEq(deployment.pluginRepoRegistry, address(0));
+    }
+
+    function test_RevertWhen_CallingPhase1OutOfOrder() external whenInvokingPhasedDeployment {
+        // Complete phase 1
+        factory.deployPhase1();
+
+        // Try calling phase 1 again - should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProtocolFactory.WrongPhase.selector,
+                ProtocolFactory.DeploymentPhase.NotStarted,
+                ProtocolFactory.DeploymentPhase.Phase1Complete
+            )
+        );
+        factory.deployPhase1();
+    }
+
+    function test_RevertWhen_CallingPhase2BeforePhase1() external whenInvokingPhasedDeployment {
+        // Try calling phase 2 without phase 1 - should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProtocolFactory.WrongPhase.selector,
+                ProtocolFactory.DeploymentPhase.Phase1Complete,
+                ProtocolFactory.DeploymentPhase.NotStarted
+            )
+        );
+        factory.deployPhase2();
+    }
+
+    function test_RevertWhen_CallingPhase3BeforePhase2() external whenInvokingPhasedDeployment {
+        // Complete phase 1 only
+        factory.deployPhase1();
+
+        // Try calling phase 3 without phase 2 - should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProtocolFactory.WrongPhase.selector,
+                ProtocolFactory.DeploymentPhase.Phase2Complete,
+                ProtocolFactory.DeploymentPhase.Phase1Complete
+            )
+        );
+        factory.deployPhase3();
+    }
+
+    function test_RevertWhen_CallingDeployOnceAfterPhasedDeployment() external whenInvokingPhasedDeployment {
+        // Complete all phases
+        factory.deployPhase1();
+        factory.deployPhase2();
+        factory.deployPhase3();
+
+        // Try calling deployOnce - should revert with AlreadyDeployed
+        vm.expectRevert(ProtocolFactory.AlreadyDeployed.selector);
         factory.deployOnce();
+    }
+
+    function test_RevertWhen_CallingPhase1AfterDeployOnce() external whenInvokingPhasedDeployment {
+        // Do a complete deployment with deployOnce
+        factory.deployOnce();
+
+        // Try calling phase 1 - should revert with WrongPhase
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ProtocolFactory.WrongPhase.selector,
+                ProtocolFactory.DeploymentPhase.NotStarted,
+                ProtocolFactory.DeploymentPhase.Complete
+            )
+        );
+        factory.deployPhase1();
+    }
+
+    modifier givenAProtocolDeployment() {
+        // Use phased deployment to stay within gas limits
+        factory.deployPhase1();
+        factory.deployPhase2();
+        factory.deployPhase3();
+
         deployment = factory.getDeployment();
         deploymentParams = builder.getDeploymentParams();
 

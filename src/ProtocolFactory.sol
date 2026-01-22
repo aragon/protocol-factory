@@ -122,6 +122,14 @@ contract ProtocolFactory {
         address stagedProposalProcessorPluginRepo;
     }
 
+    /// @notice Tracks the current phase of deployment
+    enum DeploymentPhase {
+        NotStarted,
+        Phase1Complete,
+        Phase2Complete,
+        Complete
+    }
+
     /// @notice Emitted when deployOnce() has been called and the deployment is complete.
     /// @param factory The address of the factory contract where the parameters and addresses can be retrieved.
     event ProtocolDeployed(ProtocolFactory factory);
@@ -129,11 +137,15 @@ contract ProtocolFactory {
     /// @notice Thrown when attempting to call deployOnce() when the protocol is already deployed.
     error AlreadyDeployed();
 
+    /// @notice Thrown when attempting to call a deployment phase out of order
+    error WrongPhase(DeploymentPhase expected, DeploymentPhase actual);
+
     /// @notice Thrown when the Management DAO has less members than minApprovals
     error MemberListIsTooSmall();
 
     DeploymentParameters private parameters;
     Deployment private deployment;
+    DeploymentPhase public currentPhase;
 
     /// @notice Initializes the factory and performs the full deployment. Values become read-only after that.
     /// @param _parameters The parameters of the one-time deployment.
@@ -141,9 +153,10 @@ contract ProtocolFactory {
         parameters = _parameters;
     }
 
-    function deployOnce() external {
-        if (address(deployment.daoFactory) != address(0)) {
-            revert AlreadyDeployed();
+    /// @notice Phase 1: Create Management DAO and deploy ENS infrastructure (~5.3M gas)
+    function deployPhase1() external {
+        if (currentPhase != DeploymentPhase.NotStarted) {
+            revert WrongPhase(DeploymentPhase.NotStarted, currentPhase);
         }
 
         // Create the DAO that will own the registries and the core plugin repo's
@@ -152,8 +165,26 @@ contract ProtocolFactory {
         // Set up the ENS registry and the requested domains
         prepareEnsRegistry();
 
+        currentPhase = DeploymentPhase.Phase1Complete;
+    }
+
+    /// @notice Phase 2: Deploy OSx core contracts (~13.0M gas)
+    function deployPhase2() external {
+        if (currentPhase != DeploymentPhase.Phase1Complete) {
+            revert WrongPhase(DeploymentPhase.Phase1Complete, currentPhase);
+        }
+
         // Deploy the OSx core contracts
         prepareOSx();
+
+        currentPhase = DeploymentPhase.Phase2Complete;
+    }
+
+    /// @notice Phase 3: Set up permissions, deploy plugin repos and finalize Management DAO (~6.3M gas)
+    function deployPhase3() external {
+        if (currentPhase != DeploymentPhase.Phase2Complete) {
+            revert WrongPhase(DeploymentPhase.Phase2Complete, currentPhase);
+        }
 
         preparePermissions();
 
@@ -164,6 +195,40 @@ contract ProtocolFactory {
         concludeManagementDao();
         removePermissions();
 
+        currentPhase = DeploymentPhase.Complete;
+        emit ProtocolDeployed(this);
+    }
+
+    /// @notice Performs all deployment phases in a single transaction (~25M gas) (backwards compatibility)
+    /// @dev WARNING: This may exceed gas limits on some networks. Use phased deployment instead.
+    function deployOnce() external {
+        if (currentPhase != DeploymentPhase.NotStarted) {
+            revert AlreadyDeployed();
+        }
+
+        // Create the DAO that will own the registries and the core plugin repo's
+        prepareRawManagementDao();
+
+        // Set up the ENS registry and the requested domains
+        prepareEnsRegistry();
+
+        currentPhase = DeploymentPhase.Phase1Complete;
+
+        // Deploy the OSx core contracts
+        prepareOSx();
+
+        currentPhase = DeploymentPhase.Phase2Complete;
+
+        preparePermissions();
+
+        // Prepare the plugin repo's and their versions
+        prepareCorePluginRepos();
+
+        // Drop the factory's permissions on the management DAO
+        concludeManagementDao();
+        removePermissions();
+
+        currentPhase = DeploymentPhase.Complete;
         emit ProtocolDeployed(this);
     }
 

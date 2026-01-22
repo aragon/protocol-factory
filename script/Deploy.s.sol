@@ -98,7 +98,11 @@ contract DeployScript is Script {
 
         factory = new ProtocolFactory(buildFactoryParams());
         vm.label(address(factory), "ProtocolFactory");
-        factory.deployOnce();
+
+        // Deploy in phases to stay within gas limits
+        factory.deployPhase1();
+        factory.deployPhase2();
+        factory.deployPhase3();
 
         // Done
         printDeployment();
