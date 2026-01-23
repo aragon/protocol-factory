@@ -130,15 +130,13 @@ contract ProtocolFactory {
         Complete
     }
 
-    /// @notice Emitted when deployOnce() has been called and the deployment is complete.
+    /// @notice Emitted when a deployment phase completes.
+    /// @param phase The phase that was completed.
+    event PhaseCompleted(DeploymentPhase phase);
+
+    /// @notice Emitted when all deployment phases are complete.
     /// @param factory The address of the factory contract where the parameters and addresses can be retrieved.
     event ProtocolDeployed(ProtocolFactory factory);
-
-    /// @notice Thrown when attempting to call deployOnce() when the protocol is already deployed.
-    error AlreadyDeployed();
-
-    /// @notice Thrown when attempting to call a deployment phase out of order
-    error WrongPhase(DeploymentPhase expected, DeploymentPhase actual);
 
     /// @notice Thrown when the Management DAO has less members than minApprovals
     error MemberListIsTooSmall();
@@ -153,12 +151,24 @@ contract ProtocolFactory {
         parameters = _parameters;
     }
 
-    /// @notice Phase 1: Create Management DAO and deploy ENS infrastructure (~5.3M gas)
-    function deployPhase1() external {
-        if (currentPhase != DeploymentPhase.NotStarted) {
-            revert WrongPhase(DeploymentPhase.NotStarted, currentPhase);
+    /// @notice Executes the next deployment phase. Call repeatedly until deployment is complete.
+    /// @dev Due to EIP-7825 gas limits, deployment is split into 3 phases.
+    /// @return complete True if deployment is complete, false if more phases remain.
+    function deployPhase() external returns (bool complete) {
+        if (currentPhase == DeploymentPhase.NotStarted) {
+            _deployPhase1();
+        } else if (currentPhase == DeploymentPhase.Phase1Complete) {
+            _deployPhase2();
+        } else if (currentPhase == DeploymentPhase.Phase2Complete) {
+            _deployPhase3();
         }
+        // else: already complete, nop
 
+        return currentPhase == DeploymentPhase.Complete;
+    }
+
+    /// @dev Phase 1: Create Management DAO and deploy ENS infrastructure (~1.9M gas)
+    function _deployPhase1() internal {
         // Create the DAO that will own the registries and the core plugin repo's
         prepareRawManagementDao();
 
@@ -166,26 +176,20 @@ contract ProtocolFactory {
         prepareEnsRegistry();
 
         currentPhase = DeploymentPhase.Phase1Complete;
+        emit PhaseCompleted(currentPhase);
     }
 
-    /// @notice Phase 2: Deploy OSx core contracts (~13.0M gas)
-    function deployPhase2() external {
-        if (currentPhase != DeploymentPhase.Phase1Complete) {
-            revert WrongPhase(DeploymentPhase.Phase1Complete, currentPhase);
-        }
-
+    /// @dev Phase 2: Deploy OSx core contracts (~4.5M gas)
+    function _deployPhase2() internal {
         // Deploy the OSx core contracts
         prepareOSx();
 
         currentPhase = DeploymentPhase.Phase2Complete;
+        emit PhaseCompleted(currentPhase);
     }
 
-    /// @notice Phase 3: Set up permissions, deploy plugin repos and finalize Management DAO (~6.3M gas)
-    function deployPhase3() external {
-        if (currentPhase != DeploymentPhase.Phase2Complete) {
-            revert WrongPhase(DeploymentPhase.Phase2Complete, currentPhase);
-        }
-
+    /// @dev Phase 3: Set up permissions, deploy plugin repos and finalize Management DAO (~7.9M gas)
+    function _deployPhase3() internal {
         preparePermissions();
 
         // Prepare the plugin repo's and their versions
@@ -196,39 +200,7 @@ contract ProtocolFactory {
         removePermissions();
 
         currentPhase = DeploymentPhase.Complete;
-        emit ProtocolDeployed(this);
-    }
-
-    /// @notice Performs all deployment phases in a single transaction (~25M gas) (backwards compatibility)
-    /// @dev WARNING: This may exceed gas limits on some networks. Use phased deployment instead.
-    function deployOnce() external {
-        if (currentPhase != DeploymentPhase.NotStarted) {
-            revert AlreadyDeployed();
-        }
-
-        // Create the DAO that will own the registries and the core plugin repo's
-        prepareRawManagementDao();
-
-        // Set up the ENS registry and the requested domains
-        prepareEnsRegistry();
-
-        currentPhase = DeploymentPhase.Phase1Complete;
-
-        // Deploy the OSx core contracts
-        prepareOSx();
-
-        currentPhase = DeploymentPhase.Phase2Complete;
-
-        preparePermissions();
-
-        // Prepare the plugin repo's and their versions
-        prepareCorePluginRepos();
-
-        // Drop the factory's permissions on the management DAO
-        concludeManagementDao();
-        removePermissions();
-
-        currentPhase = DeploymentPhase.Complete;
+        emit PhaseCompleted(currentPhase);
         emit ProtocolDeployed(this);
     }
 
