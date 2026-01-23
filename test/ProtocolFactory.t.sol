@@ -75,7 +75,7 @@ contract ProtocolFactoryTest is AragonTest {
 
         builder.withManagementDaoMembers(mgmtDaoMembers).withManagementDaoMinApprovals(2);
 
-        // Build the factory (deploys factory contract but doesn't call deployOnce yet)
+        // Build the factory (deploys factory contract but doesn't call deployPhase yet)
         factory = builder.build();
 
         deploymentParams = builder.getDeploymentParams();
@@ -139,12 +139,13 @@ contract ProtocolFactoryTest is AragonTest {
     }
 
     function test_GivenNoPriorDeploymentOnTheFactory() external whenInvokingDeployOnce {
-        // It Should emit an event with the factory address
+        // It Should emit an event with the factory address on final phase
+        factory.deployPhase(); // Phase 1
+        factory.deployPhase(); // Phase 2
+
         vm.expectEmit(true, true, true, true);
         emit ProtocolFactory.ProtocolDeployed(factory);
-
-        // Deploy the protocol
-        factory.deployOnce();
+        factory.deployPhase(); // Phase 3
 
         // It The deployment addresses are filled with the new contracts
         deployment = factory.getDeployment();
@@ -170,7 +171,7 @@ contract ProtocolFactoryTest is AragonTest {
         assertEq(deployment.globalExecutor, deploymentParams.osxImplementations.globalExecutor);
         assertEq(deployment.placeholderSetup, deploymentParams.osxImplementations.placeholderSetup);
 
-        // It Parameters should remain immutable after deployOnce is invoked
+        // It Parameters should remain immutable after deployment
         ProtocolFactory.DeploymentParameters memory currentParams = factory.getParameters();
 
         assertEq(keccak256(abi.encode(currentParams)), keccak256(abi.encode(deploymentParams)));
@@ -235,17 +236,16 @@ contract ProtocolFactoryTest is AragonTest {
         );
     }
 
-    function test_RevertGiven_TheFactoryAlreadyMadeADeployment() external whenInvokingDeployOnce {
+    function test_GivenTheFactoryAlreadyMadeADeployment_CallingDeployPhaseIsNoop() external whenInvokingDeployOnce {
         // Do a first deployment
         ProtocolFactory.DeploymentParameters memory params0 = factory.getParameters();
-        factory.deployOnce();
+        while (!factory.deployPhase()) {}
 
         ProtocolFactory.DeploymentParameters memory params1 = factory.getParameters();
         ProtocolFactory.Deployment memory deployment1 = factory.getDeployment();
 
-        // It Should revert
-        vm.expectRevert(ProtocolFactory.AlreadyDeployed.selector);
-        factory.deployOnce();
+        // Calling deployPhase after completion should be a no-op (not revert)
+        factory.deployPhase();
 
         // It Parameters should remain unchanged
         ProtocolFactory.DeploymentParameters memory params2 = factory.getParameters();
@@ -255,6 +255,9 @@ contract ProtocolFactoryTest is AragonTest {
         // It Deployment addresses should remain unchanged
         ProtocolFactory.Deployment memory deployment2 = factory.getDeployment();
         assertEq(keccak256(abi.encode(deployment1)), keccak256(abi.encode(deployment2)));
+
+        // Phase should still be Complete
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Complete));
     }
 
     function test_RevertGiven_TheManagementDAOMinApprovalsIsTooSmall() external whenInvokingDeployOnce {
@@ -268,11 +271,15 @@ contract ProtocolFactoryTest is AragonTest {
         builder.withManagementDaoMembers(mgmtDaoMembers).withManagementDaoMinApprovals(2);
         factory = builder.build();
 
-        // Fail
-        vm.expectRevert(ProtocolFactory.MemberListIsTooSmall.selector);
-        factory.deployOnce();
+        // Phase 1 and 2 succeed
+        factory.deployPhase();
+        factory.deployPhase();
 
-        // OK
+        // Fail on phase 3 (when concludeManagementDao is called)
+        vm.expectRevert(ProtocolFactory.MemberListIsTooSmall.selector);
+        factory.deployPhase();
+
+        // OK with valid config
         mgmtDaoMembers = new address[](2);
         mgmtDaoMembers[0] = alice;
         mgmtDaoMembers[1] = bob;
@@ -280,8 +287,58 @@ contract ProtocolFactoryTest is AragonTest {
         factory = builder.build();
     }
 
+    // PHASED DEPLOYMENT TESTS
+
+    modifier whenInvokingPhasedDeployment() {
+        _;
+    }
+
+    function test_PhasedDeploymentCompletesSuccessfully() external whenInvokingPhasedDeployment {
+        // Verify initial phase
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.NotStarted));
+
+        // Deploy phase 1
+        factory.deployPhase();
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Phase1Complete));
+
+        // Deploy phase 2
+        factory.deployPhase();
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Phase2Complete));
+
+        // Deploy phase 3 - expect event
+        vm.expectEmit(true, true, true, true);
+        emit ProtocolFactory.ProtocolDeployed(factory);
+        factory.deployPhase();
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Complete));
+
+        // Verify deployment completed
+        deployment = factory.getDeployment();
+        assertNotEq(deployment.daoFactory, address(0));
+        assertNotEq(deployment.managementDao, address(0));
+        assertNotEq(deployment.pluginRepoRegistry, address(0));
+    }
+
+    function test_DeployPhaseIsNoopAfterCompletion() external whenInvokingPhasedDeployment {
+        // Complete all phases
+        while (!factory.deployPhase()) {}
+
+        ProtocolFactory.Deployment memory deployment1 = factory.getDeployment();
+
+        // Calling deployPhase after completion should be a no-op
+        factory.deployPhase();
+
+        // Phase should still be Complete
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Complete));
+
+        // Deployment should be unchanged
+        ProtocolFactory.Deployment memory deployment2 = factory.getDeployment();
+        assertEq(keccak256(abi.encode(deployment1)), keccak256(abi.encode(deployment2)));
+    }
+
     modifier givenAProtocolDeployment() {
-        factory.deployOnce();
+        // Use phased deployment to stay within EIP-7825 gas limits
+        while (!factory.deployPhase()) {}
+
         deployment = factory.getDeployment();
         deploymentParams = builder.getDeploymentParams();
 

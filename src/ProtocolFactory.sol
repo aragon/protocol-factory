@@ -122,18 +122,28 @@ contract ProtocolFactory {
         address stagedProposalProcessorPluginRepo;
     }
 
-    /// @notice Emitted when deployOnce() has been called and the deployment is complete.
+    /// @notice Tracks the current phase of deployment
+    enum DeploymentPhase {
+        NotStarted,
+        Phase1Complete,
+        Phase2Complete,
+        Complete
+    }
+
+    /// @notice Emitted when a deployment phase completes.
+    /// @param phase The phase that was completed.
+    event PhaseCompleted(DeploymentPhase phase);
+
+    /// @notice Emitted when all deployment phases are complete.
     /// @param factory The address of the factory contract where the parameters and addresses can be retrieved.
     event ProtocolDeployed(ProtocolFactory factory);
-
-    /// @notice Thrown when attempting to call deployOnce() when the protocol is already deployed.
-    error AlreadyDeployed();
 
     /// @notice Thrown when the Management DAO has less members than minApprovals
     error MemberListIsTooSmall();
 
     DeploymentParameters private parameters;
     Deployment private deployment;
+    DeploymentPhase public currentPhase;
 
     /// @notice Initializes the factory and performs the full deployment. Values become read-only after that.
     /// @param _parameters The parameters of the one-time deployment.
@@ -141,20 +151,45 @@ contract ProtocolFactory {
         parameters = _parameters;
     }
 
-    function deployOnce() external {
-        if (address(deployment.daoFactory) != address(0)) {
-            revert AlreadyDeployed();
+    /// @notice Executes the next deployment phase. Call repeatedly until deployment is complete.
+    /// @dev Due to EIP-7825 gas limits, deployment is split into 3 phases.
+    /// @return complete True if deployment is complete, false if more phases remain.
+    function deployPhase() external returns (bool complete) {
+        if (currentPhase == DeploymentPhase.NotStarted) {
+            _deployPhase1();
+        } else if (currentPhase == DeploymentPhase.Phase1Complete) {
+            _deployPhase2();
+        } else if (currentPhase == DeploymentPhase.Phase2Complete) {
+            _deployPhase3();
         }
+        // else: already complete, nop
 
+        return currentPhase == DeploymentPhase.Complete;
+    }
+
+    /// @dev Phase 1: Create Management DAO and deploy ENS infrastructure (~1.9M gas)
+    function _deployPhase1() internal {
         // Create the DAO that will own the registries and the core plugin repo's
         prepareRawManagementDao();
 
         // Set up the ENS registry and the requested domains
         prepareEnsRegistry();
 
+        currentPhase = DeploymentPhase.Phase1Complete;
+        emit PhaseCompleted(currentPhase);
+    }
+
+    /// @dev Phase 2: Deploy OSx core contracts (~4.5M gas)
+    function _deployPhase2() internal {
         // Deploy the OSx core contracts
         prepareOSx();
 
+        currentPhase = DeploymentPhase.Phase2Complete;
+        emit PhaseCompleted(currentPhase);
+    }
+
+    /// @dev Phase 3: Set up permissions, deploy plugin repos and finalize Management DAO (~7.9M gas)
+    function _deployPhase3() internal {
         preparePermissions();
 
         // Prepare the plugin repo's and their versions
@@ -164,6 +199,8 @@ contract ProtocolFactory {
         concludeManagementDao();
         removePermissions();
 
+        currentPhase = DeploymentPhase.Complete;
+        emit PhaseCompleted(currentPhase);
         emit ProtocolDeployed(this);
     }
 

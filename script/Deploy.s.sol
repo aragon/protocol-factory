@@ -98,7 +98,9 @@ contract DeployScript is Script {
 
         factory = new ProtocolFactory(buildFactoryParams());
         vm.label(address(factory), "ProtocolFactory");
-        factory.deployOnce();
+
+        // Deploy in phases to stay within EIP-7825 gas limits
+        while (!factory.deployPhase()) {}
 
         // Done
         printDeployment();
