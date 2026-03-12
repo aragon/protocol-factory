@@ -77,6 +77,8 @@ else ifeq ($(CHAIN_ID),300)
 else ifeq ($(CHAIN_ID),324)
 	FORGE_SCRIPT_CUSTOM_PARAMS := --slow
 	FORGE_BUILD_CUSTOM_PARAMS := --zksync
+else ifeq ($(CHAIN_ID),1660990954)
+	FORGE_SCRIPT_CUSTOM_PARAMS := --slow --skip-simulation --disable-block-gas-limit --with-gas-price 1
 endif
 
 # TARGETS

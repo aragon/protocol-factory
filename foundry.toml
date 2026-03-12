@@ -14,6 +14,11 @@ evm_version = "cancun"
 # evm_version = "shanghai"
 # Peaq
 # evm_version = "london"
+# Status Sepolia
+evm_version = "paris"
+
+# auto_detect_solc = false
+# gas_limit = 99999999999
 
 optimizer = true
 optimizer-runs = 200
