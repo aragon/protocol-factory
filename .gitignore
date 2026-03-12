@@ -11,7 +11,8 @@ lcov.info
 report
 
 # Settings
-.env
+!.env.example
+.env*
 multisig-members.json
 
 # Other
