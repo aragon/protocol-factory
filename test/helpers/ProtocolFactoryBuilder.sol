@@ -23,6 +23,7 @@ import {TokenVotingSetup} from "@aragon/token-voting-plugin/TokenVotingSetup.sol
 import {GovernanceERC20} from "@aragon/token-voting-plugin/erc20/GovernanceERC20.sol";
 import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/erc20/GovernanceWrappedERC20.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {StagedProposalProcessor as SPP} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
 
 import {ALICE_ADDRESS, RANDOM_ADDRESS} from "../constants.sol";
@@ -51,7 +52,7 @@ contract ProtocolFactoryBuilder is Test {
         ),
         new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
     );
-    StagedProposalProcessorSetup SPP_SETUP = new StagedProposalProcessorSetup();
+    StagedProposalProcessorSetup SPP_SETUP = new StagedProposalProcessorSetup(new SPP());
 
     string daoRootDomain = "dao-test";
     string managementDaoSubdomain = "management-test";

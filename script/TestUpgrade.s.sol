@@ -31,6 +31,7 @@ import {TokenVotingSetup} from "@aragon/token-voting-plugin/TokenVotingSetup.sol
 import {GovernanceERC20} from "@aragon/token-voting-plugin/erc20/GovernanceERC20.sol";
 import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/erc20/GovernanceWrappedERC20.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {StagedProposalProcessor as SPP} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
 
 import {ProtocolFactory} from "../src/ProtocolFactory.sol";
@@ -128,7 +129,7 @@ contract TestUpgradeScript is Script {
                 )
             )
         });
-        address newSppSetup = address(new StagedProposalProcessorSetup());
+        address newSppSetup = address(new StagedProposalProcessorSetup(new SPP()));
         actions[3] = Action({
             to: address(sppRepo),
             value: 0,

@@ -39,7 +39,10 @@ import {Multisig} from "@aragon/multisig-plugin/Multisig.sol";
 import {TokenVoting} from "@aragon/token-voting-plugin/TokenVoting.sol";
 import {MajorityVotingBase} from "@aragon/token-voting-plugin/base/MajorityVotingBase.sol";
 import {IMajorityVoting} from "@aragon/token-voting-plugin/base/IMajorityVoting.sol";
-import {StagedProposalProcessor} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
+import {
+    StagedProposalProcessor,
+    StagedProposalProcessor as SPP
+} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 import {RuledCondition} from "@aragon/osx-commons-contracts/src/permission/condition/extensions/RuledCondition.sol";
 
 import {AdminSetup} from "@aragon/admin-plugin/AdminSetup.sol";
@@ -1968,7 +1971,7 @@ contract ProtocolFactoryTest is AragonTest {
                 )
             )
         });
-        address newSppSetup = address(new StagedProposalProcessorSetup());
+        address newSppSetup = address(new StagedProposalProcessorSetup(new SPP()));
         actions[3] = Action({
             to: deployment.stagedProposalProcessorPluginRepo,
             value: 0,

@@ -20,6 +20,7 @@ import {TokenVotingSetup} from "@aragon/token-voting-plugin/TokenVotingSetup.sol
 import {GovernanceERC20} from "@aragon/token-voting-plugin/erc20/GovernanceERC20.sol";
 import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/erc20/GovernanceWrappedERC20.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {StagedProposalProcessor as SPP} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
 
 import {ProtocolFactory} from "../src/ProtocolFactory.sol";
@@ -171,7 +172,7 @@ contract DeployScript is Script {
     }
 
     function deployStagedProposalProcessorSetup() internal {
-        stagedProposalProcessorSetup = new StagedProposalProcessorSetup();
+        stagedProposalProcessorSetup = new StagedProposalProcessorSetup(new SPP());
         vm.label(address(stagedProposalProcessorSetup), "StagedProposalProcessorSetup");
     }
 
