@@ -145,10 +145,12 @@ contract ProtocolFactoryTest is AragonTest {
         // It Should emit an event with the factory address on final phase
         factory.deployPhase(); // Phase 1
         factory.deployPhase(); // Phase 2
+        factory.deployPhase(); // Phase 3
+        factory.deployPhase(); // Phase 4
 
         vm.expectEmit(true, true, true, true);
         emit ProtocolFactory.ProtocolDeployed(factory);
-        factory.deployPhase(); // Phase 3
+        factory.deployPhase(); // Phase 5
 
         // It The deployment addresses are filled with the new contracts
         deployment = factory.getDeployment();
@@ -274,11 +276,13 @@ contract ProtocolFactoryTest is AragonTest {
         builder.withManagementDaoMembers(mgmtDaoMembers).withManagementDaoMinApprovals(2);
         factory = builder.build();
 
-        // Phase 1 and 2 succeed
+        // Phases 1-4 succeed
+        factory.deployPhase();
+        factory.deployPhase();
         factory.deployPhase();
         factory.deployPhase();
 
-        // Fail on phase 3 (when concludeManagementDao is called)
+        // Fail on phase 5 (when concludeManagementDao is called)
         vm.expectRevert(ProtocolFactory.MemberListIsTooSmall.selector);
         factory.deployPhase();
 
@@ -308,7 +312,15 @@ contract ProtocolFactoryTest is AragonTest {
         factory.deployPhase();
         assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Phase2Complete));
 
-        // Deploy phase 3 - expect event
+        // Deploy phase 3
+        factory.deployPhase();
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Phase3Complete));
+
+        // Deploy phase 4
+        factory.deployPhase();
+        assertEq(uint256(factory.currentPhase()), uint256(ProtocolFactory.DeploymentPhase.Phase4Complete));
+
+        // Deploy phase 5 - expect event
         vm.expectEmit(true, true, true, true);
         emit ProtocolFactory.ProtocolDeployed(factory);
         factory.deployPhase();

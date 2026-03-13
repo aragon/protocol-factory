@@ -127,6 +127,8 @@ contract ProtocolFactory {
         NotStarted,
         Phase1Complete,
         Phase2Complete,
+        Phase3Complete,
+        Phase4Complete,
         Complete
     }
 
@@ -161,35 +163,54 @@ contract ProtocolFactory {
             _deployPhase2();
         } else if (currentPhase == DeploymentPhase.Phase2Complete) {
             _deployPhase3();
+        } else if (currentPhase == DeploymentPhase.Phase3Complete) {
+            _deployPhase4();
+        } else if (currentPhase == DeploymentPhase.Phase4Complete) {
+            _deployPhase5();
         }
         // else: already complete, nop
 
         return currentPhase == DeploymentPhase.Complete;
     }
 
-    /// @dev Phase 1: Create Management DAO and deploy ENS infrastructure (~1.9M gas)
+    /// @dev Phase 1: Create Management DAO and deploy ENS infrastructure
     function _deployPhase1() internal {
         // Create the DAO that will own the registries and the core plugin repo's
         prepareRawManagementDao();
-
-        // Set up the ENS registry and the requested domains
-        prepareEnsRegistry();
 
         currentPhase = DeploymentPhase.Phase1Complete;
         emit PhaseCompleted(currentPhase);
     }
 
-    /// @dev Phase 2: Deploy OSx core contracts (~4.5M gas)
+    /// @dev Phase 2: Create Management DAO and deploy ENS infrastructure
     function _deployPhase2() internal {
-        // Deploy the OSx core contracts
-        prepareOSx();
+        // Set up the ENS registry and the requested domains
+        prepareEnsRegistry();
 
         currentPhase = DeploymentPhase.Phase2Complete;
         emit PhaseCompleted(currentPhase);
     }
 
-    /// @dev Phase 3: Set up permissions, deploy plugin repos and finalize Management DAO (~7.9M gas)
+    /// @dev Phase 3: Deploy OSx core contracts
     function _deployPhase3() internal {
+        // Deploy the OSx core contracts
+        prepareOSx();
+
+        currentPhase = DeploymentPhase.Phase3Complete;
+        emit PhaseCompleted(currentPhase);
+    }
+
+    /// @dev Phase 4: Deploy OSx factories
+    function _deployPhase4() internal {
+        // Deploy OSx factories
+        prepareOSxFactories();
+
+        currentPhase = DeploymentPhase.Phase4Complete;
+        emit PhaseCompleted(currentPhase);
+    }
+
+    /// @dev Phase 5: Set up permissions, deploy plugin repos and finalize Management DAO
+    function _deployPhase5() internal {
         preparePermissions();
 
         // Prepare the plugin repo's and their versions
@@ -326,20 +347,26 @@ contract ProtocolFactory {
             )
         );
 
+        // Store the plain implementation addresses
+
+        deployment.globalExecutor = parameters.osxImplementations.globalExecutor;
+        deployment.placeholderSetup = parameters.osxImplementations.placeholderSetup;
+
         // Static contract deployments
         /// @dev Offloaded to separate factories to avoid hitting code size limits.
 
         deployment.pluginSetupProcessor =
             parameters.helperFactories.pspHelper.deployStatic(deployment.pluginRepoRegistry);
+    }
+
+    function prepareOSxFactories() internal {
+        // Static contract deployments
+        /// @dev Offloaded to separate factories to avoid hitting code size limits.
+
         deployment.daoFactory =
             parameters.helperFactories.daoHelper.deployFactory(deployment.daoRegistry, deployment.pluginSetupProcessor);
         deployment.pluginRepoFactory =
             parameters.helperFactories.pluginRepoHelper.deployFactory(deployment.pluginRepoRegistry);
-
-        // Store the plain implementation addresses
-
-        deployment.globalExecutor = parameters.osxImplementations.globalExecutor;
-        deployment.placeholderSetup = parameters.osxImplementations.placeholderSetup;
     }
 
     function preparePermissions() internal {
