@@ -33,4 +33,4 @@
 	url = https://github.com/ensdomains/buffer
 [submodule "lib/foundry-env"]
 	path = lib/foundry-env
-	url = git@github.com:aragon/foundry-env.git
+	url = https://github.com/aragon/foundry-env.git
