@@ -154,7 +154,7 @@ contract ProtocolFactory {
     }
 
     /// @notice Executes the next deployment phase. Call repeatedly until deployment is complete.
-    /// @dev Due to EIP-7825 gas limits, deployment is split into 3 phases.
+    /// @dev Due to EIP-7825 gas limits, deployment is split into 5 phases.
     /// @return complete True if deployment is complete, false if more phases remain.
     function deployPhase() external returns (bool complete) {
         if (currentPhase == DeploymentPhase.NotStarted) {
@@ -182,7 +182,7 @@ contract ProtocolFactory {
         emit PhaseCompleted(currentPhase);
     }
 
-    /// @dev Phase 2: Create Management DAO and deploy ENS infrastructure
+    /// @dev Phase 2: Deploy ENS infrastructure since Management DAO is created in Phase 1
     function _deployPhase2() internal {
         // Set up the ENS registry and the requested domains
         prepareEnsRegistry();
