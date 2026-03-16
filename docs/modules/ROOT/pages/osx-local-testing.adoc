@@ -111,7 +111,7 @@ TokenVotingSetup tokenVotingSetup = new TokenVotingSetup(
     ),
     new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
 );
-StagedProposalProcessorSetup stagedProposalProcessorSetup = new StagedProposalProcessorSetup();
+StagedProposalProcessorSetup stagedProposalProcessorSetup = new StagedProposalProcessorSetup(new SPP());
 
 // Parameters
 ProtocolFactory.DeploymentParameters memory params = ProtocolFactory.DeploymentParameters({
