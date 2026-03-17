@@ -14,34 +14,37 @@ The `Makefile` is the target launcher of the project. It's the recommended way t
 
 ```
 $ make
-Available targets:
+Available recipes:
 
-- make help               Display the available targets
+  make init                 Prepare the project dependencies            [network="..."]
+  make switch               Starts using the given network              [network="..."]
+  make clean                Clean the compiler artifacts
 
-- make init               Check the dependencies and prompt to install if needed
-- make clean              Clean the build artifacts
+Testing:
 
-Testing lifecycle:
+  make test                 Run all tests (local)
+  make fork-test            Run all fork tests (exporting RPC_URL env)
+  make test-coverage        Generate an HTML coverage report under ./report
 
-- make test               Run unit tests, locally
-- make test-coverage      Generate an HTML coverage report under ./report
+Deployment:
 
-- make sync-tests         Scaffold or sync tree files into solidity tests
-- make check-tests        Checks if solidity files are out of sync
-- make markdown-tests     Generates a markdown file with the test definitions rendered as a tree
+  make predeploy            Simulate a plugin deployment
+  make deploy               Deploy the plugin, verify the code and write to ./artifacts
+  make resume               Continue a pending deployment, verify the code and write to ./artifacts
 
-Deployment targets:
+General:
 
-- make predeploy          Simulate a protocol deployment
-- make deploy             Deploy the protocol, verify the source code and write to ./artifacts
+  make anvil                Starts a forked EVM, using RPC_URL   [optional: .env FORK_BLOCK_NUMBER]
+  make refund               Transfer the balance left on the deployment account
+
+  make help                 Show the main recipes
+  make env                  Show the current environment variables
 
 Verification:
 
-- make verify-etherscan   Verify the last deployment on an Etherscan compatible explorer
-- make verify-blockscout  Verify the last deployment on BlockScout
-- make verify-sourcify    Verify the last deployment on Sourcify
-
-- make refund             Refund the remaining balance left on the deployment account
+  make verify-etherscan     Verify the last deployment on an Etherscan compatible explorer
+  make verify-blockscout    Verify the last deployment on BlockScout
+  make verify-sourcify      Verify the last deployment on Sourcify
 ```
 
 Copy `.env.example` into `.env`:
@@ -75,16 +78,13 @@ Check the available make targets to simulate and deploy the smart contracts:
   - [ ] I have run `source /root/.bashrc && foundryup`
   - [ ] I have run `cd /deployment`
   - [ ] I have run `cp .env.example .env`
-  - [ ] I have run `make init`
+  - [ ] I have run `make init network=<name>`
 - [ ] I am opening an editor on the `/deployment` folder, within the Docker container
-- [ ] The `.env` file contains the correct parameters for the deployment
+- [ ] I have prepared `.env` (and optionally `.env.<network>`)
+  - [ ] I have run `make env` and verified that the parameters are correct
   - [ ] I have created a new burner wallet with `cast wallet new` and copied the private key to `DEPLOYMENT_PRIVATE_KEY` within `.env`
-  - [ ] I have set the correct `RPC_URL` for the network
-  - [ ] I have set the correct `CHAIN_ID` for the network
-  - [ ] I have set `ETHERSCAN_API_KEY` or `BLOCKSCOUT_HOST_NAME` (when relevant to the target network)
   - [ ] `MANAGEMENT_DAO_MIN_APPROVALS` has the right value
   - [ ] The file pointed by `MANAGEMENT_DAO_MEMBERS_FILE_NAME` contains the appropriate addresses
-  - [ ] I have printed the contents of `.env` to the screen
   - [ ] I am the only person of the ceremony that will operate the deployment wallet
 - [ ] All the tests run clean (`make test`)
 - My computer:
@@ -95,7 +95,7 @@ Check the available make targets to simulate and deploy the smart contracts:
     - Windows: `netstat -nao -p tcp`
   - [ ] The wifi or wired network in use does not expose any ports to a WAN
 - [ ] I have run `make predeploy` and the simulation completes with no errors
-- [ ] The deployment wallet has sufficient native token for gas
+- [ ] I have run `make balance` and the deployment wallet has sufficient funds
   - At least, 15% more than the amount estimated during the simulation
 - [ ] `make test` still runs clean
 - [ ] I have run `git status` and it reports no local changes
