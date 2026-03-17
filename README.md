@@ -75,16 +75,13 @@ Check the available make targets to simulate and deploy the smart contracts:
   - [ ] I have run `source /root/.bashrc && foundryup`
   - [ ] I have run `cd /deployment`
   - [ ] I have run `cp .env.example .env`
-  - [ ] I have run `make init`
+  - [ ] I have run `make init network=<name>`
 - [ ] I am opening an editor on the `/deployment` folder, within the Docker container
-- [ ] The `.env` file contains the correct parameters for the deployment
+- [ ] I have prepared `.env` (and optionally `.env.<network>`)
+  - [ ] I have run `make env` and verified that the parameters are correct
   - [ ] I have created a new burner wallet with `cast wallet new` and copied the private key to `DEPLOYMENT_PRIVATE_KEY` within `.env`
-  - [ ] I have set the correct `RPC_URL` for the network
-  - [ ] I have set the correct `CHAIN_ID` for the network
-  - [ ] I have set `ETHERSCAN_API_KEY` or `BLOCKSCOUT_HOST_NAME` (when relevant to the target network)
   - [ ] `MANAGEMENT_DAO_MIN_APPROVALS` has the right value
   - [ ] The file pointed by `MANAGEMENT_DAO_MEMBERS_FILE_NAME` contains the appropriate addresses
-  - [ ] I have printed the contents of `.env` to the screen
   - [ ] I am the only person of the ceremony that will operate the deployment wallet
 - [ ] All the tests run clean (`make test`)
 - My computer:
@@ -95,7 +92,7 @@ Check the available make targets to simulate and deploy the smart contracts:
     - Windows: `netstat -nao -p tcp`
   - [ ] The wifi or wired network in use does not expose any ports to a WAN
 - [ ] I have run `make predeploy` and the simulation completes with no errors
-- [ ] The deployment wallet has sufficient native token for gas
+- [ ] I have run `make balance` and the deployment wallet has sufficient funds
   - At least, 15% more than the amount estimated during the simulation
 - [ ] `make test` still runs clean
 - [ ] I have run `git status` and it reports no local changes
