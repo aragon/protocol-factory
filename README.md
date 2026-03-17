@@ -14,34 +14,37 @@ The `Makefile` is the target launcher of the project. It's the recommended way t
 
 ```
 $ make
-Available targets:
+Available recipes:
 
-- make help               Display the available targets
+  make init                 Prepare the project dependencies            [network="..."]
+  make switch               Starts using the given network              [network="..."]
+  make clean                Clean the compiler artifacts
 
-- make init               Check the dependencies and prompt to install if needed
-- make clean              Clean the build artifacts
+Testing:
 
-Testing lifecycle:
+  make test                 Run all tests (local)
+  make fork-test            Run all fork tests (exporting RPC_URL env)
+  make test-coverage        Generate an HTML coverage report under ./report
 
-- make test               Run unit tests, locally
-- make test-coverage      Generate an HTML coverage report under ./report
+Deployment:
 
-- make sync-tests         Scaffold or sync tree files into solidity tests
-- make check-tests        Checks if solidity files are out of sync
-- make markdown-tests     Generates a markdown file with the test definitions rendered as a tree
+  make predeploy            Simulate a plugin deployment
+  make deploy               Deploy the plugin, verify the code and write to ./artifacts
+  make resume               Continue a pending deployment, verify the code and write to ./artifacts
 
-Deployment targets:
+General:
 
-- make predeploy          Simulate a protocol deployment
-- make deploy             Deploy the protocol, verify the source code and write to ./artifacts
+  make anvil                Starts a forked EVM, using RPC_URL   [optional: .env FORK_BLOCK_NUMBER]
+  make refund               Transfer the balance left on the deployment account
+
+  make help                 Show the main recipes
+  make env                  Show the current environment variables
 
 Verification:
 
-- make verify-etherscan   Verify the last deployment on an Etherscan compatible explorer
-- make verify-blockscout  Verify the last deployment on BlockScout
-- make verify-sourcify    Verify the last deployment on Sourcify
-
-- make refund             Refund the remaining balance left on the deployment account
+  make verify-etherscan     Verify the last deployment on an Etherscan compatible explorer
+  make verify-blockscout    Verify the last deployment on BlockScout
+  make verify-sourcify      Verify the last deployment on Sourcify
 ```
 
 Copy `.env.example` into `.env`:
