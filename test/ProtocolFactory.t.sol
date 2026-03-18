@@ -1964,6 +1964,7 @@ contract ProtocolFactoryTest is AragonTest {
         });
         address newTokenVotingSetup = address(
             new TokenVotingSetup(
+                new TokenVoting(),
                 new GovernanceERC20(
                     IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0), true)
                 ),
