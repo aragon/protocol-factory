@@ -5,6 +5,7 @@ libs = ["lib"]
 
 fs_permissions = [
     { access = "read", path = "./multisig-members.json" },
+    { access = "read", path = "./multisig-members-dev.json" },
     { access = "write", path = "./artifacts" },
 ]
 

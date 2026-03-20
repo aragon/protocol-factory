@@ -16,6 +16,7 @@ import {Executor as GlobalExecutor} from "@aragon/osx-commons-contracts/src/exec
 
 import {AdminSetup} from "@aragon/admin-plugin/AdminSetup.sol";
 import {MultisigSetup} from "@aragon/multisig-plugin/MultisigSetup.sol";
+import {TokenVoting} from "@aragon/token-voting-plugin/TokenVoting.sol";
 import {TokenVotingSetup} from "@aragon/token-voting-plugin/TokenVotingSetup.sol";
 import {GovernanceERC20} from "@aragon/token-voting-plugin/erc20/GovernanceERC20.sol";
 import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/erc20/GovernanceWrappedERC20.sol";
@@ -163,6 +164,7 @@ contract DeployScript is Script {
 
     function deployTokenVotingSetup() internal {
         tokenVotingSetup = new TokenVotingSetup(
+            new TokenVoting(),
             new GovernanceERC20(
                 IDAO(address(0)), "", "", GovernanceERC20.MintSettings(new address[](0), new uint256[](0), true)
             ),
