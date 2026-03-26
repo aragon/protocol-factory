@@ -4,68 +4,108 @@ This reposity contains a factory contract and a set of scripts to deploy OSx and
 
 ## Get Started
 
-To get started, ensure that [Foundry](https://getfoundry.sh/), [Make](https://www.gnu.org/software/make/) and [Docker](https://www.docker.com) are installed on your computer.
+To get started, ensure that [Foundry](https://getfoundry.sh/) and [just](https://just.systems/).
 
 For local testing, see [Using the Factory for local tests](#using-the-factory-for-local-tests) below.
 
-### Using the Makefile
+### Task runner
 
-The `Makefile` is the target launcher of the project. It's the recommended way to work with the factory for protocol deployments. It manages the env variables of common tasks and executes only the steps that need to be run.
+`just` is the task runner for this project. Run `just` or `just help` to see the available commands:
 
 ```
-$ make
+$ just help
 Available recipes:
+    default
+    help                                   # Show available commands
 
-  make init                 Prepare the project dependencies            [network="..."]
-  make switch               Starts using the given network              [network="..."]
-  make clean                Clean the compiler artifacts
+    [setup]
+    init network="mainnet"                 # Initialize the project for a given network (default: mainnet)
+    switch network                         # Select the active network
+    setup                                  # Install Foundry
 
-Testing:
+    [script]
+    predeploy                              # Simulate the deploy script
+    deploy                                 # Deploy: run tests, broadcast, tee to log
+    resume-deploy                          # Resume a pending deployment
+    run script *args                       # Run a forge script (broadcast)
+    simulate script                        # Simulate a forge script (no broadcast)
 
-  make test                 Run all tests (local)
-  make fork-test            Run all fork tests (exporting RPC_URL env)
-  make test-coverage        Generate an HTML coverage report under ./report
+    [helpers]
+    env                                    # Show current environment (resolved values + sources)
+    balance                                # Show current wallet balance
 
-Deployment:
+    [test]
+    test *args                             # Run all unit tests
+    test-fork *args                        # Run fork tests (requires RPC_URL)
+    test-coverage                          # Generate HTML coverage report under ./report
 
-  make predeploy            Simulate a plugin deployment
-  make deploy               Deploy the plugin, verify the code and write to ./artifacts
-  make resume               Continue a pending deployment, verify the code and write to ./artifacts
+    [develop]
+    clean                                  # Clean compiler artifacts and coverage reports
+    storage-info contract                  # Show the storage layout of a contract
+    anvil                                  # Start a forked EVM (set FORK_BLOCK_NUMBER in .env to pin a block)
 
-General:
+    [verification]
+    verify-etherscan script=DEPLOY_SCRIPT  # Verify the last deployment on Etherscan
+    verify-blockscout script=DEPLOY_SCRIPT # Verify the last deployment on BlockScout
+    verify-sourcify script=DEPLOY_SCRIPT   # Verify the last deployment on Sourcify
 
-  make anvil                Starts a forked EVM, using RPC_URL   [optional: .env FORK_BLOCK_NUMBER]
-  make refund               Transfer the balance left on the deployment account
-
-  make help                 Show the main recipes
-  make env                  Show the current environment variables
-
-Verification:
-
-  make verify-etherscan     Verify the last deployment on an Etherscan compatible explorer
-  make verify-blockscout    Verify the last deployment on BlockScout
-  make verify-sourcify      Verify the last deployment on Sourcify
 ```
 
-Copy `.env.example` into `.env`:
+### Environment setup
+
+Initialize for your target network:
 
 ```sh
-cp .env.example .env
+just init sepolia
+just test
 ```
 
-Run `make init`:
-- It ensures that Foundry is installed
-- It runs a first compilation of the project
+This selects the active network and pulls all submodules. Then set up your environment variables.
 
-Next, set the values of `.env` according to your environment.
+There are two types of variables, handled differently:
+
+**Secrets** (e.g. `DEPLOYMENT_PRIVATE_KEY`, `ETHERSCAN_API_KEY`). Use [`vars`](https://github.com/vars-cli/vars) (recommended) or add them to the project `.env` file:
+
+```sh
+# With vars
+vars set DEPLOYMENT_PRIVATE_KEY
+vars set ETHERSCAN_API_KEY
+just env
+
+# Plain .env file
+cp .env.example .env
+# then edit .env and fill in DEPLOYMENT_PRIVATE_KEY and ETHERSCAN_API_KEY
+```
+
+**Deployment parameters**: specific values that are not secrets but vary per deployment. These should live in the root `.env` file and cannot be stored in `vars`:
+
+```sh
+# .env (deployment parameters)
+MANAGEMENT_DAO_MIN_APPROVALS=3
+MANAGEMENT_DAO_MEMBERS_FILE_NAME="multisig-members.json"
+MANAGEMENT_DAO_METADATA_URI="ipfs://..."
+
+# Optional ENS overrides (defaults are set in the network config)
+# DAO_ENS_DOMAIN="dao"
+# MANAGEMENT_DAO_SUBDOMAIN="management"
+# PLUGIN_ENS_SUBDOMAIN="plugin"
+
+# Optional plugin metadata overrides
+# ADMIN_PLUGIN_RELEASE_METADATA_URI="ipfs://..."
+# ADMIN_PLUGIN_BUILD_METADATA_URI="ipfs://..."
+# MULTISIG_PLUGIN_RELEASE_METADATA_URI="ipfs://..."
+# ...
+```
+
+Run `just env` to verify the full resolved environment before deploying.
 
 ## Deployment
 
-Check the available make targets to simulate and deploy the smart contracts:
+Use `just` to simulate and deploy:
 
-```
-- make predeploy        Simulate a protocol deployment
-- make deploy           Deploy the protocol and verify the source code
+```sh
+just predeploy    # simulate — no broadcast
+just deploy       # run tests, broadcast, verify, tee to log/*
 ```
 
 ### Deployment Checklist
@@ -73,20 +113,22 @@ Check the available make targets to simulate and deploy the smart contracts:
 - [ ] I have cloned the official repository on my computer and I have checked out the `main` branch
 - [ ] I am using the latest official docker engine, running a Debian Linux (stable) image
   - [ ] I have run `docker run --rm -it -v .:/deployment debian:bookworm-slim`
-  - [ ] I have run `apt update && apt install -y make curl git vim neovim bc jq`
-  - [ ] I have run `curl -L https://foundry.paradigm.xyz | bash`
-  - [ ] I have run `source /root/.bashrc && foundryup`
+  - [ ] I have run `apt update && apt install -y just curl git vim neovim bc jq`
+  - [ ] I have run `curl -L https://foundry.paradigm.xyz | bash && source /root/.bashrc && foundryup`
   - [ ] I have run `cd /deployment`
-  - [ ] I have run `cp .env.example .env`
-  - [ ] I have run `make init network=<name>`
+  - [ ] I have run `just init <network>`
 - [ ] I am opening an editor on the `/deployment` folder, within the Docker container
-- [ ] I have prepared `.env` (and optionally `.env.<network>`)
-  - [ ] I have run `make env` and verified that the parameters are correct
-  - [ ] I have created a new burner wallet with `cast wallet new` and copied the private key to `DEPLOYMENT_PRIVATE_KEY` within `.env`
-  - [ ] `MANAGEMENT_DAO_MIN_APPROVALS` has the right value
-  - [ ] The file pointed by `MANAGEMENT_DAO_MEMBERS_FILE_NAME` contains the appropriate addresses
+- [ ] I have run `just env` and verified that all parameters are correct
+  - [ ] `DEPLOYMENT_PRIVATE_KEY` is set (via `vars set DEPLOYMENT_PRIVATE_KEY` or in root `.env`)
+  - [ ] `ETHERSCAN_API_KEY` is set (via `vars set ETHERSCAN_API_KEY` or in root `.env`)
+  - [ ] I have set the deployment parameters in the root `.env` file:
+    - [ ] `MANAGEMENT_DAO_MIN_APPROVALS` has the right value
+    - [ ] `MANAGEMENT_DAO_MEMBERS_FILE_NAME` points to a file containing the correct multisig addresses
+    - [ ] `MANAGEMENT_DAO_METADATA_URI` is set to the correct IPFS URI
+    - [ ] Plugin metadata URIs are set (if overriding the defaults)
+  - [ ] I have created a new burner wallet with `cast wallet new` and used its private key as `DEPLOYMENT_PRIVATE_KEY`
   - [ ] I am the only person of the ceremony that will operate the deployment wallet
-- [ ] All the tests run clean (`make test`)
+- [ ] All the tests run clean (`just test`)
 - My computer:
   - [ ] Is running in a safe location and using a trusted network
   - [ ] It exposes no services or ports
@@ -94,14 +136,14 @@ Check the available make targets to simulate and deploy the smart contracts:
     - Linux: `netstat -tulpn`
     - Windows: `netstat -nao -p tcp`
   - [ ] The wifi or wired network in use does not expose any ports to a WAN
-- [ ] I have run `make predeploy` and the simulation completes with no errors
-- [ ] I have run `make balance` and the deployment wallet has sufficient funds
+- [ ] I have run `just predeploy` and the simulation completes with no errors
+- [ ] I have run `just balance` and the deployment wallet has sufficient funds
   - At least, 15% more than the amount estimated during the simulation
-- [ ] `make test` still runs clean
+- [ ] `just test` still runs clean
 - [ ] I have run `git status` and it reports no local changes
 - [ ] The current local git branch (`main`) corresponds to its counterpart on `origin`
   - [ ] I confirm that the rest of members of the ceremony pulled the last git commit on `main` and reported the same commit hash as my output for `git log -n 1`
-- [ ] I have initiated the production deployment with `make deploy`
+- [ ] I have initiated the production deployment with `just deploy`
 
 ### Post deployment checklist
 
@@ -116,7 +158,7 @@ Check the available make targets to simulate and deploy the smart contracts:
   - `broadcast/Deploy.s.sol/<chain-id>/run-<timestamp>.json` (the last one)
 - [ ] The rest of members confirm that the values are correct
 - [ ] I have transferred the remaining funds of the deployment wallet to the address that originally funded it
-  - `make refund`
+  - `just refund`
 - [ ] I have cloned https://github.com/aragon/diffyscan-workspace/
   - [ ] I have copied the deployed addresses to a new config file for the network
   - [ ] I have run the source code verification and the code matches the [audited commits](https://github.com/aragon/osx/tree/main/audits)
@@ -344,91 +386,6 @@ If some contracts fail to verify on Etherscan, retry with this command:
 
 ```sh
 forge script --chain "$NETWORK" script/DeployGauges.s.sol:Deploy --rpc-url "$RPC_URL" --verify --legacy --private-key "$DEPLOYMENT_PRIVATE_KEY" --resume
-```
-
-## Testing
-
-Using make:
-
-```
-Testing lifecycle:
-
-- make test             Run unit tests, locally
-- make test-coverage    Generate an HTML coverage report under ./report
-```
-
-Run `make test` or `forge test -vvv` to check the logic's accordance to the specs.
-
-See the [TEST_TREE.md](./TEST_TREE.md) file for a visual summary of the implemented tests.
-
-### Writing tests
-
-Tests are described using yaml files like [ProtocolFactory.t.yaml](./test/ProtocolFactory.t.yaml). `make sync-tests` will transform them into solidity tests using [bulloak](https://github.com/alexfertel/bulloak).
-
-Create a file with `.t.yaml` extension within the `test` folder and describe a hierarchy of test cases:
-
-```yaml
-# MyTest.t.yaml
-
-MyContractTest:
-- given: proposal exists
-  comment: Comment here
-  and:
-  - given: proposal is in the last stage
-    and:
-
-    - when: proposal can advance
-      then:
-      - it: Should return true
-
-    - when: proposal cannot advance
-      then:
-      - it: Should return false
-
-  - when: proposal is not in the last stage
-    then:
-    - it: should do A
-      comment: This is an important remark
-    - it: should do B
-    - it: should do C
-
-- when: proposal doesn't exist
-  comment: Testing edge cases here
-  then:
-  - it: should revert
-```
-
-Then use `make` to automatically sync the described branches into solidity test files.
-
-```sh
-$ make
-Testing lifecycle:
-# ...
-- make sync-tests       Scaffold or sync tree files into solidity tests
-- make check-tests      Checks if solidity files are out of sync
-- make markdown-tests   Generates a markdown file with the test definitions rendered as a tree
-
-$ make sync-tests
-```
-
-Each yaml file will produce a human readable tree like below, followed by a solidity test scaffold:
-
-```
-# MyTest.tree
-
-MyContractTest
-├── Given proposal exists // Comment here
-│   ├── Given proposal is in the last stage
-│   │   ├── When proposal can advance
-│   │   │   └── It Should return true
-│   │   └── When proposal cannot advance
-│   │       └── It Should return false
-│   └── When proposal is not in the last stage
-│       ├── It should do A // Careful here
-│       ├── It should do B
-│       └── It should do C
-└── When proposal doesn't exist // Testing edge cases here
-    └── It should revert
 ```
 
 ## Security
