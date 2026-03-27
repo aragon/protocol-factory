@@ -45,9 +45,7 @@ Available recipes:
     anvil                                  # Start a forked EVM (set FORK_BLOCK_NUMBER in .env to pin a block)
 
     [verification]
-    verify-etherscan script=DEPLOY_SCRIPT  # Verify the last deployment on Etherscan
-    verify-blockscout script=DEPLOY_SCRIPT # Verify the last deployment on BlockScout
-    verify-sourcify script=DEPLOY_SCRIPT   # Verify the last deployment on Sourcify
+    verify verifier="" script=DEPLOY_SCRIPT  # Verify all contracts from the latest broadcast
 
 ```
 
