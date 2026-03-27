@@ -4,7 +4,7 @@ This reposity contains a factory contract and a set of scripts to deploy OSx and
 
 ## Get Started
 
-To get started, ensure that [Foundry](https://getfoundry.sh/) and [just](https://just.systems/).
+To get started, ensure that [Foundry](https://getfoundry.sh/) and [just](https://just.systems/) are installed on your computer.
 
 For local testing, see [Using the Factory for local tests](#using-the-factory-for-local-tests) below.
 
@@ -16,36 +16,36 @@ For local testing, see [Using the Factory for local tests](#using-the-factory-fo
 $ just help
 Available recipes:
     default
-    help                                   # Show available commands
+    help                                    # Show available commands
 
     [setup]
-    init network="mainnet"                 # Initialize the project for a given network (default: mainnet)
-    switch network                         # Select the active network
-    setup                                  # Install Foundry
+    init network="mainnet"                  # Initialize the project for a given network (default: mainnet)
+    switch network                          # Select the active network
+    setup                                   # Install Foundry
 
     [script]
-    predeploy                              # Simulate the deploy script
-    deploy                                 # Deploy: run tests, broadcast, tee to log
-    resume-deploy                          # Resume a pending deployment
-    run script *args                       # Run a forge script (broadcast)
-    simulate script                        # Simulate a forge script (no broadcast)
+    predeploy                               # Simulate the deploy script
+    deploy                                  # Deploy: run tests, broadcast, tee to log
+    resume-deploy                           # Resume a pending deployment
+    run script *args                        # Run a forge script (broadcast)
+    simulate script                         # Simulate a forge script (no broadcast)
 
     [helpers]
-    env                                    # Show current environment (resolved values + sources)
-    balance                                # Show current wallet balance
+    env                                     # Show current environment (resolved values + sources)
+    balance                                 # Show current wallet balance
 
     [test]
-    test *args                             # Run all unit tests
-    test-fork *args                        # Run fork tests (requires RPC_URL)
-    test-coverage                          # Generate HTML coverage report under ./report
+    test *args                              # Run all unit tests
+    test-fork *args                         # Run fork tests (requires RPC_URL)
+    test-coverage                           # Generate HTML coverage report under ./report
 
     [develop]
-    clean                                  # Clean compiler artifacts and coverage reports
-    storage-info contract                  # Show the storage layout of a contract
-    anvil                                  # Start a forked EVM (set FORK_BLOCK_NUMBER in .env to pin a block)
+    clean                                   # Clean compiler artifacts and coverage reports
+    storage-info contract                   # Show the storage layout of a contract
+    anvil                                   # Start a forked EVM (set FORK_BLOCK_NUMBER in .env to pin a block)
 
     [verification]
-    verify verifier="" script=DEPLOY_SCRIPT  # Verify all contracts from the latest broadcast
+    verify verifier="" script=DEPLOY_SCRIPT # Verify all contracts from the latest broadcast
 
 ```
 
@@ -354,36 +354,6 @@ ProtocolFactory.DeploymentParameters memory params = ProtocolFactory.DeploymentP
 
 ProtocolFactory factory = new ProtocolFactory(params);
 factory.deployOnce();
-```
-
-## Manual contract verification
-
-### Routescan verifier
-
-```sh
-$ forge verify-contract <address> <path/to/file.sol>:<contract-name> --verifier-url 'https://api.routescan.io/v2/network/<testnet|mainnet>/evm/<chain-id>/etherscan' --etherscan-api-key "verifyContract" --num-of-optimizations 200 --compiler-version 0.8.28 --constructor-args <args>
-```
-
-Where:
-- `<address>` is the address of the contract to verify
-- `<path/to/file.sol>:<contract-name>` is the path of the source file along with the contract name
-- `<testnet|mainnet>` the type of network
-- `<chain-id>` the ID of the chain
-- `<args>` the constructor arguments
-  - Get them with `$(cast abi-encode "constructor(address param1, uint256 param2,...)" param1 param2 ...)`
-
-## Deployment troubleshooting (CLI)
-
-If you get the error Failed to get EIP-1559 fees, add `--legacy` to the command:
-
-```sh
-forge script --chain "$NETWORK" script/DeployGauges.s.sol:Deploy --rpc-url "$RPC_URL" --broadcast --verify --legacy
-```
-
-If some contracts fail to verify on Etherscan, retry with this command:
-
-```sh
-forge script --chain "$NETWORK" script/DeployGauges.s.sol:Deploy --rpc-url "$RPC_URL" --verify --legacy --private-key "$DEPLOYMENT_PRIVATE_KEY" --resume
 ```
 
 ## Security
