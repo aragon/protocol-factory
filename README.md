@@ -110,7 +110,7 @@ just deploy       # run tests, broadcast, verify, tee to log/*
 
 - [ ] I have cloned the official repository on my computer and I have checked out the `main` branch
 - [ ] I am using the latest official docker engine, running a Debian Linux (stable) image
-  - [ ] I have run `docker run --rm -it -v .:/deployment debian:bookworm-slim`
+  - [ ] I have run `docker run --rm -it -v .:/deployment --env-file  <(vars resolve --partial --dotenv 2>/dev/null) debian:bookworm-slim`
   - [ ] I have run `apt update && apt install -y just curl git vim neovim bc jq`
   - [ ] I have run `curl -L https://foundry.paradigm.xyz | bash && source /root/.bashrc && foundryup`
   - [ ] I have run `cd /deployment`
