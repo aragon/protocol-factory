@@ -62,17 +62,18 @@ This selects the active network and pulls all submodules. Then set up your envir
 
 There are two types of variables, handled differently:
 
-**Secrets** (e.g. `DEPLOYMENT_PRIVATE_KEY`, `ETHERSCAN_API_KEY`). Use [`vars`](https://github.com/vars-cli/vars) (recommended) or add them to the project `.env` file:
+**Secrets** (e.g. `DEPLOYER_KEY`, `ETHERSCAN_API_KEY`). Use [`vars`](https://github.com/vars-cli/vars) (recommended) or add them to the project `.env` file:
 
 ```sh
 # With vars
-vars set DEPLOYMENT_PRIVATE_KEY
+vars set DEPLOYER_KEY           # for production networks
+vars set dev/DEPLOYER_KEY       # for testnets
 vars set ETHERSCAN_API_KEY
-just env
+# just env
 
 # Plain .env file
 cp .env.example .env
-# then edit .env and fill in DEPLOYMENT_PRIVATE_KEY and ETHERSCAN_API_KEY
+# then edit .env and fill in DEPLOYER_KEY and ETHERSCAN_API_KEY
 ```
 
 **Deployment parameters**: specific values that are not secrets but vary per deployment. These should live in the root `.env` file and cannot be stored in `vars`:
@@ -117,14 +118,14 @@ just deploy       # run tests, broadcast, verify, tee to log/*
   - [ ] I have run `just init <network>`
 - [ ] I am opening an editor on the `/deployment` folder, within the Docker container
 - [ ] I have run `just env` and verified that all parameters are correct
-  - [ ] `DEPLOYMENT_PRIVATE_KEY` is set (via `vars set DEPLOYMENT_PRIVATE_KEY` or in root `.env`)
+  - [ ] `DEPLOYER_KEY` is set (via `vars set DEPLOYER_KEY` or in root `.env`)
   - [ ] `ETHERSCAN_API_KEY` is set (via `vars set ETHERSCAN_API_KEY` or in root `.env`)
   - [ ] I have set the deployment parameters in the root `.env` file:
     - [ ] `MANAGEMENT_DAO_MIN_APPROVALS` has the right value
     - [ ] `MANAGEMENT_DAO_MEMBERS_FILE_NAME` points to a file containing the correct multisig addresses
     - [ ] `MANAGEMENT_DAO_METADATA_URI` is set to the correct IPFS URI
     - [ ] Plugin metadata URIs are set (if overriding the defaults)
-  - [ ] I have created a new burner wallet with `cast wallet new` and used its private key as `DEPLOYMENT_PRIVATE_KEY`
+  - [ ] I have created a new burner wallet with `cast wallet new` and used its private key as `DEPLOYER_KEY`
   - [ ] I am the only person of the ceremony that will operate the deployment wallet
 - [ ] All the tests run clean (`just test`)
 - My computer:

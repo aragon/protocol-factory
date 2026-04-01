@@ -1,24 +1,24 @@
 # Secrets managed by vars (https://github.com/vars-cli/vars)
 # Values are age-encrypted in your personal store — only key names are committed here.
 # Usage:
-#   vars set DEPLOYMENT_PRIVATE_KEY    # store a value
+#   vars set DEPLOYER_KEY    # store a value
 #   eval "$(vars resolve)"             # load into current shell
 #   just deploy                        # justfile recipes call vars resolve automatically
 
 keys:
-    - DEPLOYMENT_PRIVATE_KEY
-    - ETHERSCAN_API_KEY
-    - RPC_URL # optional override: the public RPC from the network file
-    - MANAGEMENT_DAO_MIN_APPROVALS
-    # - REFUND_ADDRESS # optional: burner wallet refund target
+  - DEPLOYER_KEY
+  - ETHERSCAN_API_KEY
+  - RPC_URL # optional override: the public RPC from the network file
+  - MANAGEMENT_DAO_MIN_APPROVALS
+  # - REFUND_ADDRESS # optional: burner wallet refund target
 
 # Profiles are keyed by network name — just switch <network> activates the matching profile.
-# Store scoped values with: vars set <scope>/DEPLOYMENT_PRIVATE_KEY
+# Store scoped values with: vars set <scope>/DEPLOYER_KEY
 
 profiles:
-    sepolia:
-        DEPLOYMENT_PRIVATE_KEY: dev/DEPLOYMENT_PRIVATE_KEY
-        MANAGEMENT_DAO_MIN_APPROVALS: =1
-    zksync-sepolia:
-        DEPLOYMENT_PRIVATE_KEY: dev/DEPLOYMENT_PRIVATE_KEY
-        MANAGEMENT_DAO_MIN_APPROVALS: =1
+  sepolia:
+    DEPLOYER_KEY: dev/DEPLOYER_KEY
+    MANAGEMENT_DAO_MIN_APPROVALS: =1
+  zksync-sepolia:
+    DEPLOYER_KEY: dev/DEPLOYER_KEY
+    MANAGEMENT_DAO_MIN_APPROVALS: =1
