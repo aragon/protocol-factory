@@ -74,7 +74,7 @@ contract DeployScript is Script {
     ENSHelper ensHelper;
 
     modifier broadcast() {
-        uint256 privKey = vm.envUint("DEPLOYMENT_PRIVATE_KEY");
+        uint256 privKey = vm.envUint("DEPLOYER_KEY");
         vm.startBroadcast(privKey);
         console.log("OSx version", VERSION);
         console.log("- Deployment wallet:", vm.addr(privKey));

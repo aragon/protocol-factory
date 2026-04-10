@@ -6,7 +6,6 @@ artifacts/
 broadcast/
 
 # Testing
-test/*.tree
 lcov.info
 report
 
@@ -14,6 +13,7 @@ report
 !.env.example
 .env*
 multisig-members.json
+multisig-members-*.json
 
 # Other
 .DS_Store
