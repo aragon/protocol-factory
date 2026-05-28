@@ -1,8 +1,8 @@
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
 @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 
-@aragon/osx/=lib/osx/packages/contracts/src/
-@aragon/osx-commons-contracts/=lib/osx-commons/contracts/
+@aragon/osx/=lib/osx/src/
+@aragon/osx-commons-contracts/src/=lib/osx/src/common/
 @aragon/admin-plugin/=lib/admin-plugin/packages/contracts/src/
 @aragon/multisig-plugin/=lib/multisig-plugin/packages/contracts/src/
 @aragon/token-voting-plugin/=lib/token-voting-plugin/src/

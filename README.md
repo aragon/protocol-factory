@@ -193,10 +193,10 @@ forge install aragon/protocol-factory
 Given that this repository already depends on OSx, you may want to replace the existing `remappings.txt` entry and use the OSx path provided by `protocol-factory` itself.
 
 ```diff
--@aragon/osx/=lib/osx/packages/contracts/src/
+-@aragon/osx/=lib/osx/src/
 
 +@aragon/protocol-factory/=lib/protocol-factory/
-+@aragon/osx/=lib/protocol-factory/lib/osx/packages/contracts/src/
++@aragon/osx/=lib/protocol-factory/lib/osx/src/
 ```
 
 #### The simplest example
