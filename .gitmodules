@@ -31,3 +31,6 @@
 [submodule "lib/just-foundry"]
 	path = lib/just-foundry
 	url = https://github.com/aragon/just-foundry.git
+[submodule "lib/condition-library"]
+	path = lib/condition-library
+	url = https://github.com/aragon/condition-library.git
