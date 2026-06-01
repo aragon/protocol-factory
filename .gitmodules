@@ -4,9 +4,6 @@
 [submodule "lib/osx"]
 	path = lib/osx
 	url = https://github.com/aragon/osx
-[submodule "lib/osx-commons"]
-	path = lib/osx-commons
-	url = https://github.com/aragon/osx-commons
 [submodule "lib/admin-plugin"]
 	path = lib/admin-plugin
 	url = https://github.com/aragon/admin-plugin
