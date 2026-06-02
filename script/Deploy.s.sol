@@ -24,6 +24,11 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 import {StagedProposalProcessor as SPP} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
 
+import {ConditionFactory} from "@aragon/condition-library/factory/ConditionFactory.sol";
+import {ExecuteSelectorCondition} from "@aragon/condition-library/ExecuteSelectorCondition.sol";
+import {SelectorCondition} from "@aragon/condition-library/SelectorCondition.sol";
+import {SafeOwnerCondition, IOwnerManager} from "@aragon/condition-library/SafeOwnerCondition.sol";
+
 import {ProtocolFactory} from "../src/ProtocolFactory.sol";
 import {DAOHelper} from "../src/helpers/DAOHelper.sol";
 import {PluginRepoHelper} from "../src/helpers/PluginRepoHelper.sol";
@@ -67,6 +72,8 @@ contract DeployScript is Script {
     TokenVotingSetup tokenVotingSetup;
     StagedProposalProcessorSetup stagedProposalProcessorSetup;
 
+    ConditionFactory conditionFactory;
+
     ProtocolFactory factory;
     DAOHelper daoHelper;
     PluginRepoHelper pluginRepoHelper;
@@ -95,6 +102,8 @@ contract DeployScript is Script {
         deployMultisigSetup();
         deployTokenVotingSetup();
         deployStagedProposalProcessorSetup();
+
+        deployConditionFactory();
 
         // Deploy the factory with immutable parameters and trigger the protocol deployment
 
@@ -176,6 +185,23 @@ contract DeployScript is Script {
     function deployStagedProposalProcessorSetup() internal {
         stagedProposalProcessorSetup = new StagedProposalProcessorSetup(new SPP());
         vm.label(address(stagedProposalProcessorSetup), "StagedProposalProcessorSetup");
+    }
+
+    function deployConditionFactory() internal {
+        conditionFactory = new ConditionFactory();
+        vm.label(address(conditionFactory), "ConditionFactory");
+
+        // Deploy dummy instances to force source verification on block explorers
+        conditionFactory.deployExecuteSelectorCondition(
+            IDAO(address(0)), new ExecuteSelectorCondition.SelectorTarget[](0)
+        );
+        conditionFactory.deploySelectorCondition(IDAO(address(0)), new bytes4[](0));
+
+        address safeAddress = vm.envOr("SAFE_ADDRESS", address(0));
+        if (safeAddress == address(0)) {
+            safeAddress = address(new IsOwnerMock());
+        }
+        conditionFactory.deploySafeOwnerCondition(safeAddress);
     }
 
     function readManagementDaoMembers() public view returns (address[] memory result) {
@@ -313,6 +339,10 @@ contract DeployScript is Script {
         console.log("- GlobalExecutor", deployment.globalExecutor);
         console.log("- PlaceholderSetup", deployment.placeholderSetup);
         console.log();
+
+        console.log("Conditions:");
+        console.log("- ConditionFactory", address(conditionFactory));
+        console.log();
     }
 
     function writeJsonAddresses() internal {
@@ -354,7 +384,8 @@ contract DeployScript is Script {
         version.serialize("osx", osxAddresses);
         version.serialize("ens", ensAddresses);
         version.serialize("corePlugins", corePluginsAddresses);
-        version = version.serialize("protocolFactory", address(factory));
+        version.serialize("protocolFactory", address(factory));
+        version = version.serialize("conditionFactory", address(conditionFactory));
 
         string memory networkName = vm.envString("NETWORK_NAME");
         string memory filePath = string.concat(
@@ -364,4 +395,9 @@ contract DeployScript is Script {
 
         console.log("Deployment addresses written to", filePath);
     }
+}
+
+/// @dev Minimal mock so SafeOwnerCondition can be deployed for source verification when no real Safe is available
+contract IsOwnerMock {
+    function isOwner(address) external pure returns (bool) {}
 }
