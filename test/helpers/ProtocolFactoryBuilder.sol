@@ -26,6 +26,7 @@ import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/erc20/Governan
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {StagedProposalProcessor as SPP} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
+import {LockToVotePluginSetup} from "@aragon/lock-to-vote-plugin/setup/LockToVotePluginSetup.sol";
 
 import {ALICE_ADDRESS, RANDOM_ADDRESS} from "../constants.sol";
 
@@ -55,6 +56,7 @@ contract ProtocolFactoryBuilder is Test {
         new GovernanceWrappedERC20(IERC20Upgradeable(address(0)), "", "")
     );
     StagedProposalProcessorSetup SPP_SETUP = new StagedProposalProcessorSetup(new SPP());
+    LockToVotePluginSetup LTV_SETUP = new LockToVotePluginSetup();
 
     string daoRootDomain = "dao-test";
     string managementDaoSubdomain = "management-test";
@@ -91,6 +93,14 @@ contract ProtocolFactoryBuilder is Test {
         releaseMetadataUri: "spp-release-metadata",
         buildMetadataUri: "spp-build-metadata",
         subdomain: "spp-test"
+    });
+    ProtocolFactory.CorePlugin lockToVotePlugin = ProtocolFactory.CorePlugin({
+        pluginSetup: LTV_SETUP,
+        release: 1,
+        build: 1,
+        releaseMetadataUri: "ltv-release-metadata",
+        buildMetadataUri: "ltv-build-metadata",
+        subdomain: "lock-to-vote-test"
     });
 
     ProtocolFactory.ManagementDaoParameters managementDaoParams = ProtocolFactory.ManagementDaoParameters({
@@ -191,6 +201,24 @@ contract ProtocolFactoryBuilder is Test {
         return this;
     }
 
+    function withLockToVotePlugin(
+        uint8 _release,
+        uint8 _build,
+        string memory _releaseMetadataUri,
+        string memory _buildMetadataUri,
+        string memory _subdomain
+    ) public returns (ProtocolFactoryBuilder) {
+        lockToVotePlugin = ProtocolFactory.CorePlugin({
+            pluginSetup: LTV_SETUP,
+            release: _release,
+            build: _build,
+            releaseMetadataUri: _releaseMetadataUri,
+            buildMetadataUri: _buildMetadataUri,
+            subdomain: _subdomain
+        });
+        return this;
+    }
+
     function withManagementDaoMetadataUri(string memory _metadataUri) public returns (ProtocolFactoryBuilder) {
         managementDaoParams.metadataUri = _metadataUri;
         return this;
@@ -234,6 +262,7 @@ contract ProtocolFactoryBuilder is Test {
         vm.label(address(params.corePlugins.multisigPlugin.pluginSetup), "MultisigSetup");
         vm.label(address(params.corePlugins.tokenVotingPlugin.pluginSetup), "TokenVotingSetup");
         vm.label(address(params.corePlugins.stagedProposalProcessorPlugin.pluginSetup), "StagedProposalProcessorSetup");
+        vm.label(address(params.corePlugins.lockToVotePlugin.pluginSetup), "LockToVotePluginSetup");
 
         vm.roll(block.number + 1);
         vm.warp(block.timestamp + 1);
@@ -303,6 +332,14 @@ contract ProtocolFactoryBuilder is Test {
                     releaseMetadataUri: stagedProposalProcessorPlugin.releaseMetadataUri,
                     buildMetadataUri: stagedProposalProcessorPlugin.buildMetadataUri,
                     subdomain: stagedProposalProcessorPlugin.subdomain
+                }),
+                lockToVotePlugin: ProtocolFactory.CorePlugin({
+                    pluginSetup: LTV_SETUP,
+                    release: lockToVotePlugin.release,
+                    build: lockToVotePlugin.build,
+                    releaseMetadataUri: lockToVotePlugin.releaseMetadataUri,
+                    buildMetadataUri: lockToVotePlugin.buildMetadataUri,
+                    subdomain: lockToVotePlugin.subdomain
                 })
             }),
             managementDao: ProtocolFactory.ManagementDaoParameters({

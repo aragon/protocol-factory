@@ -8,6 +8,7 @@
 @aragon/token-voting-plugin/=lib/token-voting-plugin/src/
 @aragon/staged-proposal-processor-plugin/=lib/staged-proposal-processor-plugin/src/
 
+@aragon/lock-to-vote-plugin/=lib/lock-to-vote-plugin/src/
 @aragon/condition-library/=lib/condition-library/src/
 
 @ensdomains/ens-contracts/=lib/ens-contracts/

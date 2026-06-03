@@ -88,6 +88,7 @@ contract ProtocolFactory {
         CorePlugin multisigPlugin;
         CorePlugin tokenVotingPlugin;
         CorePlugin stagedProposalProcessorPlugin;
+        CorePlugin lockToVotePlugin;
     }
 
     /// @notice A struct with the voting settings and metadata of the Management DAO
@@ -120,6 +121,7 @@ contract ProtocolFactory {
         address multisigPluginRepo;
         address tokenVotingPluginRepo;
         address stagedProposalProcessorPluginRepo;
+        address lockToVotePluginRepo;
     }
 
     /// @notice Tracks the current phase of deployment
@@ -435,6 +437,7 @@ contract ProtocolFactory {
         deployment.tokenVotingPluginRepo = preparePluginRepo(parameters.corePlugins.tokenVotingPlugin);
         deployment.stagedProposalProcessorPluginRepo =
             preparePluginRepo(parameters.corePlugins.stagedProposalProcessorPlugin);
+        deployment.lockToVotePluginRepo = preparePluginRepo(parameters.corePlugins.lockToVotePlugin);
     }
 
     function preparePluginRepo(CorePlugin memory corePlugin) internal returns (address pluginRepo) {

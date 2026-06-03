@@ -34,3 +34,6 @@
 [submodule "lib/condition-library"]
 	path = lib/condition-library
 	url = https://github.com/aragon/condition-library.git
+[submodule "lib/lock-to-vote-plugin"]
+	path = lib/lock-to-vote-plugin
+	url = https://github.com/aragon/lock-to-vote-plugin.git
