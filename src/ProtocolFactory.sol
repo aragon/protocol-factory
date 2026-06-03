@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {IDAOHelper, IPluginRepoHelper, IPSPHelper, IENSHelper} from "./helpers/interfaces.sol";
 
 import {DAO, Action} from "@aragon/osx/core/dao/DAO.sol";
-import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IDAO} from "@aragon/osx/common/dao/IDAO.sol";
 import {DAOFactory} from "@aragon/osx/framework/dao/DAOFactory.sol";
 import {DAORegistry} from "@aragon/osx/framework/dao/DAORegistry.sol";
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
@@ -16,9 +16,9 @@ import {
     hashHelpers
 } from "@aragon/osx/framework/plugin/setup/PluginSetupProcessor.sol";
 
-import {IPlugin} from "@aragon/osx-commons-contracts/src/plugin/IPlugin.sol";
-import {IPluginSetup} from "@aragon/osx-commons-contracts/src/plugin/setup/IPluginSetup.sol";
-import {PermissionLib} from "@aragon/osx-commons-contracts/src/permission/PermissionLib.sol";
+import {IPlugin} from "@aragon/osx/common/plugin/IPlugin.sol";
+import {IPluginSetup} from "@aragon/osx/common/plugin/setup/IPluginSetup.sol";
+import {PermissionLib} from "@aragon/osx/common/permission/PermissionLib.sol";
 import {Multisig} from "@aragon/multisig-plugin/Multisig.sol";
 
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";

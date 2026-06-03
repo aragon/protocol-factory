@@ -25,7 +25,8 @@ contract ENSHelper is IENSHelper {
         // ENS Registry and PublicResolver
         ensRegistry = address(new ENSRegistry());
 
-        publicResolver = address(new PublicResolver(ENSRegistry(ensRegistry), INameWrapper(address(0)), address(0), address(0)));
+        publicResolver =
+            address(new PublicResolver(ENSRegistry(ensRegistry), INameWrapper(address(0)), address(0), address(0)));
 
         // The deployer of ENSRegistry becomes the owner of the root node (0x0).
 

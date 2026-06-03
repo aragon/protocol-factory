@@ -3,13 +3,13 @@ pragma solidity ^0.8.17;
 
 import {Test} from "forge-std/Test.sol";
 import {DAO} from "@aragon/osx/core/dao/DAO.sol";
-import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IDAO} from "@aragon/osx/common/dao/IDAO.sol";
 import {DAORegistry} from "@aragon/osx/framework/dao/DAORegistry.sol";
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
 import {PluginRepoRegistry} from "@aragon/osx/framework/plugin/repo/PluginRepoRegistry.sol";
 import {PlaceholderSetup} from "@aragon/osx/framework/plugin/repo/placeholder/PlaceholderSetup.sol";
 import {ENSSubdomainRegistrar} from "@aragon/osx/framework/utils/ens/ENSSubdomainRegistrar.sol";
-import {Executor as GlobalExecutor} from "@aragon/osx-commons-contracts/src/executors/Executor.sol";
+import {Executor as GlobalExecutor} from "@aragon/osx/common/executors/Executor.sol";
 
 import {ProtocolFactory} from "../../src/ProtocolFactory.sol";
 import {DAOHelper} from "../../src/helpers/DAOHelper.sol";

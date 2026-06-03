@@ -6,13 +6,13 @@ import {stdJson} from "forge-std/StdJson.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import {DAO} from "@aragon/osx/core/dao/DAO.sol";
-import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IDAO} from "@aragon/osx/common/dao/IDAO.sol";
 import {DAORegistry} from "@aragon/osx/framework/dao/DAORegistry.sol";
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
 import {PluginRepoRegistry} from "@aragon/osx/framework/plugin/repo/PluginRepoRegistry.sol";
 import {PlaceholderSetup} from "@aragon/osx/framework/plugin/repo/placeholder/PlaceholderSetup.sol";
 import {ENSSubdomainRegistrar} from "@aragon/osx/framework/utils/ens/ENSSubdomainRegistrar.sol";
-import {Executor as GlobalExecutor} from "@aragon/osx-commons-contracts/src/executors/Executor.sol";
+import {Executor as GlobalExecutor} from "@aragon/osx/common/executors/Executor.sol";
 
 import {AdminSetup} from "@aragon/admin-plugin/AdminSetup.sol";
 import {MultisigSetup} from "@aragon/multisig-plugin/MultisigSetup.sol";
@@ -30,7 +30,7 @@ import {MajorityVotingBase} from "@aragon/lock-to-vote-plugin/base/MajorityVotin
 import {LockManagerERC20} from "@aragon/lock-to-vote-plugin/LockManagerERC20.sol";
 import {MinVotingPowerCondition} from "@aragon/lock-to-vote-plugin/conditions/MinVotingPowerCondition.sol";
 import {ILockToGovernBase} from "@aragon/lock-to-vote-plugin/interfaces/ILockToGovernBase.sol";
-import {IPlugin} from "@aragon/osx-commons-contracts/src/plugin/IPlugin.sol";
+import {IPlugin} from "@aragon/osx/common/plugin/IPlugin.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
@@ -338,9 +338,7 @@ contract DeployScript is Script {
                     releaseMetadataUri: vm.envOr(
                         "LOCK_TO_VOTE_PLUGIN_RELEASE_METADATA_URI", DEFAULT_LTV_RELEASE_METADATA
                     ),
-                    buildMetadataUri: vm.envOr(
-                        "LOCK_TO_VOTE_PLUGIN_BUILD_METADATA_URI", DEFAULT_LTV_BUILD_METADATA
-                    ),
+                    buildMetadataUri: vm.envOr("LOCK_TO_VOTE_PLUGIN_BUILD_METADATA_URI", DEFAULT_LTV_BUILD_METADATA),
                     subdomain: vm.envOr("LOCK_TO_VOTE_PLUGIN_SUBDOMAIN", string("lock-to-vote"))
                 })
             }),
@@ -438,9 +436,7 @@ contract DeployScript is Script {
         corePluginsAddresses.serialize(
             "stagedProposalProcessorPluginRepo", deployment.stagedProposalProcessorPluginRepo
         );
-        corePluginsAddresses = corePluginsAddresses.serialize(
-            "lockToVotePluginRepo", deployment.lockToVotePluginRepo
-        );
+        corePluginsAddresses = corePluginsAddresses.serialize("lockToVotePluginRepo", deployment.lockToVotePluginRepo);
 
         // Store the stringified JSON to the variable, as we won't need the key any longer
         string memory version = "versionObject";
