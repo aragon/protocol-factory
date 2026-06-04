@@ -6,7 +6,7 @@ import {stdJson} from "forge-std/StdJson.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import {DAO, Action} from "@aragon/osx/core/dao/DAO.sol";
-import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IDAO} from "@aragon/osx/common/dao/IDAO.sol";
 import {DAOFactory} from "@aragon/osx/framework/dao/DAOFactory.sol";
 import {DAORegistry} from "@aragon/osx/framework/dao/DAORegistry.sol";
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
@@ -19,8 +19,8 @@ import {
 } from "@aragon/osx/framework/plugin/setup/PluginSetupProcessor.sol";
 import {PlaceholderSetup} from "@aragon/osx/framework/plugin/repo/placeholder/PlaceholderSetup.sol";
 import {ENSSubdomainRegistrar} from "@aragon/osx/framework/utils/ens/ENSSubdomainRegistrar.sol";
-import {Executor as GlobalExecutor} from "@aragon/osx-commons-contracts/src/executors/Executor.sol";
-import {PermissionLib} from "@aragon/osx-commons-contracts/src/permission/PermissionLib.sol";
+import {Executor as GlobalExecutor} from "@aragon/osx/common/executors/Executor.sol";
+import {PermissionLib} from "@aragon/osx/common/permission/PermissionLib.sol";
 import {PermissionManager} from "@aragon/osx/core/permission/PermissionManager.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 

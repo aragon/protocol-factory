@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.8;
 
-import {PermissionLib} from "@aragon/osx-commons-contracts/src/permission/PermissionLib.sol";
-import {PluginSetup} from "@aragon/osx-commons-contracts/src/plugin/setup/PluginSetup.sol";
+import {PermissionLib} from "@aragon/osx/common/permission/PermissionLib.sol";
+import {PluginSetup} from "@aragon/osx/common/plugin/setup/PluginSetup.sol";
 
 contract DummySetup is PluginSetup {
     constructor() PluginSetup(address(0)) {}

@@ -10,9 +10,9 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {DummySetup} from "./helpers/DummySetup.sol";
 
 // OSx Imports
-import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IDAO} from "@aragon/osx/common/dao/IDAO.sol";
 import {DAO, Action} from "@aragon/osx/core/dao/DAO.sol";
-import {PermissionLib} from "@aragon/osx-commons-contracts/src/permission/PermissionLib.sol";
+import {PermissionLib} from "@aragon/osx/common/permission/PermissionLib.sol";
 import {PermissionManager} from "@aragon/osx/core/permission/PermissionManager.sol";
 import {DAOFactory} from "@aragon/osx/framework/dao/DAOFactory.sol";
 import {DAORegistry} from "@aragon/osx/framework/dao/DAORegistry.sol";
@@ -24,8 +24,8 @@ import {
     PluginSetupRef,
     hashHelpers
 } from "@aragon/osx/framework/plugin/setup/PluginSetupProcessor.sol";
-import {IPluginSetup} from "@aragon/osx-commons-contracts/src/plugin/setup/IPluginSetup.sol";
-import {IPlugin} from "@aragon/osx-commons-contracts/src/plugin/IPlugin.sol";
+import {IPluginSetup} from "@aragon/osx/common/plugin/setup/IPluginSetup.sol";
+import {IPlugin} from "@aragon/osx/common/plugin/IPlugin.sol";
 import {ENSSubdomainRegistrar} from "@aragon/osx/framework/utils/ens/ENSSubdomainRegistrar.sol";
 
 // ENS Imports
@@ -43,7 +43,7 @@ import {
     StagedProposalProcessor,
     StagedProposalProcessor as SPP
 } from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
-import {RuledCondition} from "@aragon/osx-commons-contracts/src/permission/condition/extensions/RuledCondition.sol";
+import {RuledCondition} from "@aragon/osx/common/permission/condition/extensions/RuledCondition.sol";
 
 import {AdminSetup} from "@aragon/admin-plugin/AdminSetup.sol";
 import {MultisigSetup} from "@aragon/multisig-plugin/MultisigSetup.sol";

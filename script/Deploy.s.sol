@@ -6,13 +6,13 @@ import {stdJson} from "forge-std/StdJson.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import {DAO} from "@aragon/osx/core/dao/DAO.sol";
-import {IDAO} from "@aragon/osx-commons-contracts/src/dao/IDAO.sol";
+import {IDAO} from "@aragon/osx/common/dao/IDAO.sol";
 import {DAORegistry} from "@aragon/osx/framework/dao/DAORegistry.sol";
 import {PluginRepo} from "@aragon/osx/framework/plugin/repo/PluginRepo.sol";
 import {PluginRepoRegistry} from "@aragon/osx/framework/plugin/repo/PluginRepoRegistry.sol";
 import {PlaceholderSetup} from "@aragon/osx/framework/plugin/repo/placeholder/PlaceholderSetup.sol";
 import {ENSSubdomainRegistrar} from "@aragon/osx/framework/utils/ens/ENSSubdomainRegistrar.sol";
-import {Executor as GlobalExecutor} from "@aragon/osx-commons-contracts/src/executors/Executor.sol";
+import {Executor as GlobalExecutor} from "@aragon/osx/common/executors/Executor.sol";
 
 import {AdminSetup} from "@aragon/admin-plugin/AdminSetup.sol";
 import {MultisigSetup} from "@aragon/multisig-plugin/MultisigSetup.sol";
@@ -23,6 +23,16 @@ import {GovernanceWrappedERC20} from "@aragon/token-voting-plugin/erc20/Governan
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {StagedProposalProcessor as SPP} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
+
+import {LockToVotePluginSetup} from "@aragon/lock-to-vote-plugin/setup/LockToVotePluginSetup.sol";
+import {LockToVotePlugin} from "@aragon/lock-to-vote-plugin/LockToVotePlugin.sol";
+import {MajorityVotingBase} from "@aragon/lock-to-vote-plugin/base/MajorityVotingBase.sol";
+import {LockManagerERC20} from "@aragon/lock-to-vote-plugin/LockManagerERC20.sol";
+import {MinVotingPowerCondition} from "@aragon/lock-to-vote-plugin/conditions/MinVotingPowerCondition.sol";
+import {ILockToGovernBase} from "@aragon/lock-to-vote-plugin/interfaces/ILockToGovernBase.sol";
+import {IPlugin} from "@aragon/osx/common/plugin/IPlugin.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import {ConditionFactory} from "@aragon/condition-library/factory/ConditionFactory.sol";
 import {ExecuteSelectorCondition} from "@aragon/condition-library/ExecuteSelectorCondition.sol";
@@ -58,6 +68,8 @@ contract DeployScript is Script {
     string DEFAULT_TOKEN_VOTING_BUILD_METADATA = "ipfs://QmfXUy5Lc4iqg8DvgWdSSD2ZhCmCGvE2WTdWYFE9sosCRc";
     string DEFAULT_SPP_RELEASE_METADATA = "ipfs://bafkreif23p6yw325rkwwlhgkudiasvq64lonqmfnt7ls5ksfam5hedcb4m";
     string DEFAULT_SPP_BUILD_METADATA = "ipfs://bafkreifia6hhz7klfbaqawd4vcplkoiesycbmrf5c2x24zfuivyn35mfsu";
+    string DEFAULT_LTV_RELEASE_METADATA = "ipfs://Qmb2zmXKTFucochyetSTaT9wFXGUFENp25XBB7CDprXmyQ";
+    string DEFAULT_LTV_BUILD_METADATA = "ipfs://QmV17NAoAX9oo1D6QUV9iw8CjugdQEJcacr9TUMtJYCJ3w";
     string DEFAULT_MANAGEMENT_DAO_METADATA = "ipfs://bafkreibemfrxeuwfaono6k37vbi66fctcwtioiyctrl4fvqtqmiodt2mle";
 
     DAO daoBase;
@@ -71,6 +83,7 @@ contract DeployScript is Script {
     MultisigSetup multisigSetup;
     TokenVotingSetup tokenVotingSetup;
     StagedProposalProcessorSetup stagedProposalProcessorSetup;
+    LockToVotePluginSetup lockToVotePluginSetup;
 
     ConditionFactory conditionFactory;
 
@@ -102,6 +115,7 @@ contract DeployScript is Script {
         deployMultisigSetup();
         deployTokenVotingSetup();
         deployStagedProposalProcessorSetup();
+        deployLockToVoteSetup();
 
         deployConditionFactory();
 
@@ -185,6 +199,39 @@ contract DeployScript is Script {
     function deployStagedProposalProcessorSetup() internal {
         stagedProposalProcessorSetup = new StagedProposalProcessorSetup(new SPP());
         vm.label(address(stagedProposalProcessorSetup), "StagedProposalProcessorSetup");
+    }
+
+    function deployLockToVoteSetup() internal {
+        lockToVotePluginSetup = new LockToVotePluginSetup();
+        vm.label(address(lockToVotePluginSetup), "LockToVotePluginSetup");
+
+        // Deploy dummy instances to force source verification on block explorers
+        LockManagerERC20 dummyLockManager = new LockManagerERC20(IERC20(address(0)));
+
+        MajorityVotingBase.VotingSettings memory votingSettings = MajorityVotingBase.VotingSettings({
+            votingMode: MajorityVotingBase.VotingMode.Standard,
+            supportThresholdRatio: 500_000,
+            minParticipationRatio: 500_000,
+            minApprovalRatio: 500_000,
+            proposalDuration: 10 days,
+            minProposerVotingPower: 0
+        });
+        IPlugin.TargetConfig memory targetConfig =
+            IPlugin.TargetConfig({target: address(1234), operation: IPlugin.Operation.Call});
+
+        LockToVotePlugin dummyPlugin = LockToVotePlugin(
+            address(
+                new ERC1967Proxy(
+                    lockToVotePluginSetup.implementation(),
+                    abi.encodeCall(
+                        LockToVotePlugin.initialize,
+                        (IDAO(address(1234)), dummyLockManager, votingSettings, targetConfig, bytes(""))
+                    )
+                )
+            )
+        );
+
+        new MinVotingPowerCondition(ILockToGovernBase(dummyPlugin));
     }
 
     function deployConditionFactory() internal {
@@ -283,6 +330,16 @@ contract DeployScript is Script {
                         "STAGED_PROPOSAL_PROCESSOR_PLUGIN_BUILD_METADATA_URI", DEFAULT_SPP_BUILD_METADATA
                     ),
                     subdomain: vm.envOr("STAGED_PROPOSAL_PROCESSOR_PLUGIN_SUBDOMAIN", string("spp"))
+                }),
+                lockToVotePlugin: ProtocolFactory.CorePlugin({
+                    pluginSetup: lockToVotePluginSetup,
+                    release: 1,
+                    build: 1,
+                    releaseMetadataUri: vm.envOr(
+                        "LOCK_TO_VOTE_PLUGIN_RELEASE_METADATA_URI", DEFAULT_LTV_RELEASE_METADATA
+                    ),
+                    buildMetadataUri: vm.envOr("LOCK_TO_VOTE_PLUGIN_BUILD_METADATA_URI", DEFAULT_LTV_BUILD_METADATA),
+                    subdomain: vm.envOr("LOCK_TO_VOTE_PLUGIN_SUBDOMAIN", string("lock-to-vote"))
                 })
             }),
             managementDao: ProtocolFactory.ManagementDaoParameters({
@@ -333,6 +390,7 @@ contract DeployScript is Script {
         console.log("- Multisig PluginRepo", deployment.multisigPluginRepo);
         console.log("- TokenVoting PluginRepo", deployment.tokenVotingPluginRepo);
         console.log("- SPP PluginRepo", deployment.stagedProposalProcessorPluginRepo);
+        console.log("- LockToVote PluginRepo", deployment.lockToVotePluginRepo);
         console.log();
 
         console.log("Other OSx contracts:");
@@ -375,9 +433,10 @@ contract DeployScript is Script {
         corePluginsAddresses.serialize("adminPluginRepo", deployment.adminPluginRepo);
         corePluginsAddresses.serialize("multisigPluginRepo", deployment.multisigPluginRepo);
         corePluginsAddresses.serialize("tokenVotingPluginRepo", deployment.tokenVotingPluginRepo);
-        corePluginsAddresses = corePluginsAddresses.serialize(
+        corePluginsAddresses.serialize(
             "stagedProposalProcessorPluginRepo", deployment.stagedProposalProcessorPluginRepo
         );
+        corePluginsAddresses = corePluginsAddresses.serialize("lockToVotePluginRepo", deployment.lockToVotePluginRepo);
 
         // Store the stringified JSON to the variable, as we won't need the key any longer
         string memory version = "versionObject";
