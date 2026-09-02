@@ -17,6 +17,9 @@
   "lib/just-foundry": {
     "rev": "be7160d555906f43c192203ca9b92a612c0e3f17"
   },
+  "lib/lock-to-vote-plugin": {
+    "rev": "5a513e3d9f1aad35d8926de87c408720e8d20a8d"
+  },
   "lib/multisig-plugin": {
     "rev": "391a1b1b9c5d4ee2180c370fdec4045d9189f202"
   },
