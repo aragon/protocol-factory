@@ -130,7 +130,7 @@ contract DeployScript is Script {
         // Done
         printDeployment();
 
-        if (!vm.envOr("SIMULATE", false)) {
+        if (!vm.envOr("SIMULATION", false)) {
             writeJsonAddresses();
         }
     }
