@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 
 import {Script, console} from "forge-std/Script.sol";
-import {stdJson} from "forge-std/StdJson.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import {DAO} from "@aragon/osx/core/dao/DAO.sol";
@@ -40,6 +39,7 @@ import {SelectorCondition} from "@aragon/condition-library/SelectorCondition.sol
 import {SafeOwnerCondition, IOwnerManager} from "@aragon/condition-library/SafeOwnerCondition.sol";
 
 import {ProtocolFactory} from "../src/ProtocolFactory.sol";
+import {AddressBook} from "./AddressBook.sol";
 import {DAOHelper} from "../src/helpers/DAOHelper.sol";
 import {PluginRepoHelper} from "../src/helpers/PluginRepoHelper.sol";
 import {PSPHelper} from "../src/helpers/PSPHelper.sol";
@@ -50,9 +50,7 @@ import {ENSHelper} from "../src/helpers/ENSHelper.sol";
 /// @dev Given that deploying the factory with all contracts embedded would hit the gas limit, the deployment has two stages:
 /// @dev 1) Deploy the raw contracts and store their addresses locally (this file)
 /// @dev 2) Deploy the factory with the addresses above and tell it to orchestrate the protocol deployment
-contract DeployScript is Script {
-    using stdJson for string;
-
+contract DeployScript is Script, AddressBook {
     // Constants
     string constant VERSION = "1.4";
     string constant DEFAULT_DAO_ENS_DOMAIN = "dao";
@@ -131,7 +129,8 @@ contract DeployScript is Script {
         printDeployment();
 
         if (!vm.envOr("SIMULATION", false)) {
-            writeJsonAddresses();
+            string memory path = _writeAddressBook(factory, address(conditionFactory), vm.envString("NETWORK_NAME"));
+            console.log("Address book (artifacts-hub format) written to", path);
         }
     }
 
@@ -401,58 +400,6 @@ contract DeployScript is Script {
         console.log("Conditions:");
         console.log("- ConditionFactory", address(conditionFactory));
         console.log();
-    }
-
-    function writeJsonAddresses() internal {
-        ProtocolFactory.Deployment memory deployment = factory.getDeployment();
-
-        string memory osxAddresses = "osxAddresses";
-        string memory ensAddresses = "ensAddresses";
-        string memory corePluginsAddresses = "corePluginsAddresses";
-
-        // OSx static contracts
-        osxAddresses.serialize("daoFactory", deployment.daoFactory);
-        osxAddresses.serialize("pluginRepoFactory", deployment.pluginRepoFactory);
-        osxAddresses.serialize("pluginSetupProcessor", deployment.pluginSetupProcessor);
-        osxAddresses.serialize("globalExecutor", deployment.globalExecutor);
-        osxAddresses.serialize("placeholderSetup", deployment.placeholderSetup);
-
-        // OSx proxies
-        osxAddresses.serialize("daoRegistry", deployment.daoRegistry);
-        osxAddresses.serialize("pluginRepoRegistry", deployment.pluginRepoRegistry);
-        osxAddresses.serialize("managementDao", deployment.managementDao);
-        osxAddresses = osxAddresses.serialize("managementDaoMultisig", deployment.managementDaoMultisig);
-
-        // ENS
-        ensAddresses.serialize("ensRegistry", deployment.ensRegistry);
-        ensAddresses.serialize("daoSubdomainRegistrar", deployment.daoSubdomainRegistrar);
-        ensAddresses.serialize("pluginSubdomainRegistrar", deployment.pluginSubdomainRegistrar);
-        ensAddresses = ensAddresses.serialize("publicResolver", deployment.publicResolver);
-
-        // Plugin Repo's
-        corePluginsAddresses.serialize("adminPluginRepo", deployment.adminPluginRepo);
-        corePluginsAddresses.serialize("multisigPluginRepo", deployment.multisigPluginRepo);
-        corePluginsAddresses.serialize("tokenVotingPluginRepo", deployment.tokenVotingPluginRepo);
-        corePluginsAddresses.serialize(
-            "stagedProposalProcessorPluginRepo", deployment.stagedProposalProcessorPluginRepo
-        );
-        corePluginsAddresses = corePluginsAddresses.serialize("lockToVotePluginRepo", deployment.lockToVotePluginRepo);
-
-        // Store the stringified JSON to the variable, as we won't need the key any longer
-        string memory version = "versionObject";
-        version.serialize("osx", osxAddresses);
-        version.serialize("ens", ensAddresses);
-        version.serialize("corePlugins", corePluginsAddresses);
-        version.serialize("protocolFactory", address(factory));
-        version = version.serialize("conditionFactory", address(conditionFactory));
-
-        string memory networkName = vm.envString("NETWORK_NAME");
-        string memory filePath = string.concat(
-            vm.projectRoot(), "/artifacts/addresses-", networkName, "-", Strings.toString(block.timestamp), ".json"
-        );
-        version.write(filePath);
-
-        console.log("Deployment addresses written to", filePath);
     }
 }
 
