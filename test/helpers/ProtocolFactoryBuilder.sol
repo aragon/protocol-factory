@@ -89,7 +89,7 @@ contract ProtocolFactoryBuilder is Test {
     ProtocolFactory.CorePlugin stagedProposalProcessorPlugin = ProtocolFactory.CorePlugin({
         pluginSetup: SPP_SETUP,
         release: 1,
-        build: 1,
+        build: 3,
         releaseMetadataUri: "spp-release-metadata",
         buildMetadataUri: "spp-build-metadata",
         subdomain: "spp-test"
