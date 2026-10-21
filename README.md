@@ -91,7 +91,7 @@ MANAGEMENT_DAO_MIN_APPROVALS=3
 MANAGEMENT_DAO_MEMBERS_FILE_NAME="multisig-members.json"
 MANAGEMENT_DAO_METADATA_URI="ipfs://..."
 
-# Optional ENS overrides (defaults are set in the network config)
+# Optional ENS overrides (defaults are set in script/Deploy.s.sol)
 # DAO_ENS_DOMAIN="dao"
 # MANAGEMENT_DAO_SUBDOMAIN="management"
 # PLUGIN_ENS_SUBDOMAIN="plugin"
