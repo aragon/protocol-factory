@@ -65,7 +65,7 @@ contract DeployScript is Script, AddressBook {
     string DEFAULT_TOKEN_VOTING_RELEASE_METADATA = "ipfs://QmWjZArvePnMPgbfKAMW3TidbqHEy68UV6SvRBhiaygGta";
     string DEFAULT_TOKEN_VOTING_BUILD_METADATA = "ipfs://QmfXUy5Lc4iqg8DvgWdSSD2ZhCmCGvE2WTdWYFE9sosCRc";
     string DEFAULT_SPP_RELEASE_METADATA = "ipfs://bafkreif23p6yw325rkwwlhgkudiasvq64lonqmfnt7ls5ksfam5hedcb4m";
-    string DEFAULT_SPP_BUILD_METADATA = "ipfs://QmUuvtPgqNogyC6pVRJqzyesjQYbTHXsS4iksDHC258uYW";
+    string DEFAULT_SPP_BUILD_METADATA = "ipfs://QmPJErCM2FV8YpJGNjNy4U5yDgHwTNczwEfMZ9SHhBTa64";
     string DEFAULT_LTV_RELEASE_METADATA = "ipfs://Qmb2zmXKTFucochyetSTaT9wFXGUFENp25XBB7CDprXmyQ";
     string DEFAULT_LTV_BUILD_METADATA = "ipfs://QmV17NAoAX9oo1D6QUV9iw8CjugdQEJcacr9TUMtJYCJ3w";
     string DEFAULT_MANAGEMENT_DAO_METADATA = "ipfs://bafkreibemfrxeuwfaono6k37vbi66fctcwtioiyctrl4fvqtqmiodt2mle";
