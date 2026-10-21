@@ -58,10 +58,10 @@ contract DeployScript is Script, AddressBook {
     string constant DEFAULT_PLUGIN_ENS_SUBDOMAIN = "plugin";
     string constant DEFAULT_MANAGEMENT_DAO_MEMBERS_FILE_NAME = "multisig-members.json";
 
-    string DEFAULT_ADMIN_RELEASE_METADATA = "ipfs://bafkreifbwooo3h36htzscftwm3kouoktcvkqyhaxluodo6xkyprnon3r54";
-    string DEFAULT_ADMIN_BUILD_METADATA = "ipfs://bafkreifijshftf47q5mtoibfvwkzv42reqf4uddi46i7kcblt6bpsvgii4";
-    string DEFAULT_MULTISIG_RELEASE_METADATA = "ipfs://bafkreiesxfvwf7qphbpw2epmabrrz2alwo66fso7tjx3cbt63k4xzec3ma";
-    string DEFAULT_MULTISIG_BUILD_METADATA = "ipfs://bafkreiaipjj2ryy2ui77crwmgbamjkmr6xbdvrviylh4z4kf54sq2etvgu";
+    string DEFAULT_ADMIN_RELEASE_METADATA = "ipfs://QmYBiJKv2y6kGjwd11D9fRnHT3aXRD6HXG91QQLZzieRK6";
+    string DEFAULT_ADMIN_BUILD_METADATA = "ipfs://QmfWLgS9tQSSd7bKZ7RT1yURFrRwZgkwpzVJVRH1deTTYe";
+    string DEFAULT_MULTISIG_RELEASE_METADATA = "ipfs://QmRfQ7ghLZFy5DHQ63eDK3iPfXUP6igoupFYsy9whhYyJq";
+    string DEFAULT_MULTISIG_BUILD_METADATA = "ipfs://QmRVs5yJzJ7rFPGRvVnzvimj63N7pWPzd169rud698AwsZ";
     string DEFAULT_TOKEN_VOTING_RELEASE_METADATA = "ipfs://QmWjZArvePnMPgbfKAMW3TidbqHEy68UV6SvRBhiaygGta";
     string DEFAULT_TOKEN_VOTING_BUILD_METADATA = "ipfs://QmfXUy5Lc4iqg8DvgWdSSD2ZhCmCGvE2WTdWYFE9sosCRc";
     string DEFAULT_SPP_RELEASE_METADATA = "ipfs://bafkreif23p6yw325rkwwlhgkudiasvq64lonqmfnt7ls5ksfam5hedcb4m";
