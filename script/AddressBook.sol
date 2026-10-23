@@ -160,6 +160,11 @@ abstract contract AddressBook is Script {
                 "lock-to-vote",
                 _pluginJson(d, d.lockToVotePluginRepo, p.corePlugins.lockToVotePlugin.subdomain, domain, false)
             ),
+            ",\n",
+            _kv(
+                "crosschain",
+                _pluginJson(d, d.crossChainPluginRepo, p.corePlugins.crossChainPlugin.subdomain, domain, false)
+            ),
             "\n}"
         );
     }
