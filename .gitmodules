@@ -37,3 +37,6 @@
 [submodule "lib/lock-to-vote-plugin"]
 	path = lib/lock-to-vote-plugin
 	url = https://github.com/aragon/lock-to-vote-plugin.git
+[submodule "lib/crosschain"]
+	path = lib/crosschain
+	url = https://github.com/aragon/crosschain.git

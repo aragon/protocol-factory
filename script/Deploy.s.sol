@@ -33,6 +33,10 @@ import {IPlugin} from "@aragon/osx/common/plugin/IPlugin.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
+import {CrossChainController} from "@aragon/crosschain-plugin/CrossChainController.sol";
+import {CrossChainControllerSetup} from "@aragon/crosschain-plugin/CrossChainControllerSetup.sol";
+import {Executor as CrossChainExecutor} from "@aragon/crosschain-plugin/Executor.sol";
+
 import {ConditionFactory} from "@aragon/condition-library/factory/ConditionFactory.sol";
 import {ExecuteSelectorCondition} from "@aragon/condition-library/ExecuteSelectorCondition.sol";
 import {SelectorCondition} from "@aragon/condition-library/SelectorCondition.sol";
@@ -58,6 +62,20 @@ contract DeployScript is Script, AddressBook {
     string constant DEFAULT_PLUGIN_ENS_SUBDOMAIN = "plugin";
     string constant DEFAULT_MANAGEMENT_DAO_MEMBERS_FILE_NAME = "multisig-members.json";
 
+    // Plugin versions (release, build) to publish. Earlier builds get a placeholder.
+    uint8 constant ADMIN_RELEASE = 1;
+    uint8 constant ADMIN_BUILD = 2;
+    uint8 constant MULTISIG_RELEASE = 1;
+    uint8 constant MULTISIG_BUILD = 3;
+    uint8 constant TOKEN_VOTING_RELEASE = 1;
+    uint8 constant TOKEN_VOTING_BUILD = 4;
+    uint8 constant SPP_RELEASE = 1;
+    uint8 constant SPP_BUILD = 3;
+    uint8 constant LTV_RELEASE = 1;
+    uint8 constant LTV_BUILD = 1;
+    uint8 constant CROSSCHAIN_RELEASE = 1;
+    uint8 constant CROSSCHAIN_BUILD = 1;
+
     string DEFAULT_ADMIN_RELEASE_METADATA = "ipfs://QmYBiJKv2y6kGjwd11D9fRnHT3aXRD6HXG91QQLZzieRK6";
     string DEFAULT_ADMIN_BUILD_METADATA = "ipfs://QmfWLgS9tQSSd7bKZ7RT1yURFrRwZgkwpzVJVRH1deTTYe";
     string DEFAULT_MULTISIG_RELEASE_METADATA = "ipfs://QmRfQ7ghLZFy5DHQ63eDK3iPfXUP6igoupFYsy9whhYyJq";
@@ -68,6 +86,8 @@ contract DeployScript is Script, AddressBook {
     string DEFAULT_SPP_BUILD_METADATA = "ipfs://QmPJErCM2FV8YpJGNjNy4U5yDgHwTNczwEfMZ9SHhBTa64";
     string DEFAULT_LTV_RELEASE_METADATA = "ipfs://Qmb2zmXKTFucochyetSTaT9wFXGUFENp25XBB7CDprXmyQ";
     string DEFAULT_LTV_BUILD_METADATA = "ipfs://QmV17NAoAX9oo1D6QUV9iw8CjugdQEJcacr9TUMtJYCJ3w";
+    string DEFAULT_CROSSCHAIN_RELEASE_METADATA = "ipfs://QmSfiCe5sCkrbA7gw6xriqCVx8iR1C2eAqL1iWYp9HbDAV";
+    string DEFAULT_CROSSCHAIN_BUILD_METADATA = "ipfs://QmZuSnnzNFA9Zw2Vzb1KgaxCqox5uzYBR3UUhbef3FoUzy";
     string DEFAULT_MANAGEMENT_DAO_METADATA = "ipfs://bafkreibemfrxeuwfaono6k37vbi66fctcwtioiyctrl4fvqtqmiodt2mle";
 
     DAO daoBase;
@@ -82,6 +102,7 @@ contract DeployScript is Script, AddressBook {
     TokenVotingSetup tokenVotingSetup;
     StagedProposalProcessorSetup stagedProposalProcessorSetup;
     LockToVotePluginSetup lockToVotePluginSetup;
+    CrossChainControllerSetup crossChainControllerSetup;
 
     ConditionFactory conditionFactory;
 
@@ -114,6 +135,7 @@ contract DeployScript is Script, AddressBook {
         deployTokenVotingSetup();
         deployStagedProposalProcessorSetup();
         deployLockToVoteSetup();
+        deployCrossChainSetup();
 
         deployConditionFactory();
 
@@ -233,6 +255,15 @@ contract DeployScript is Script, AddressBook {
         new MinVotingPowerCondition(ILockToGovernBase(dummyPlugin));
     }
 
+    function deployCrossChainSetup() internal {
+        crossChainControllerSetup = new CrossChainControllerSetup(address(new CrossChainController()));
+        vm.label(address(crossChainControllerSetup), "CrossChainControllerSetup");
+
+        // Deploy a dummy instance to force source verification on block explorers
+        /// @dev The setup only creates Executors during prepareInstallation
+        new CrossChainExecutor();
+    }
+
     function deployConditionFactory() internal {
         conditionFactory = new ConditionFactory();
         vm.label(address(conditionFactory), "ConditionFactory");
@@ -290,16 +321,16 @@ contract DeployScript is Script, AddressBook {
             corePlugins: ProtocolFactory.CorePlugins({
                 adminPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: adminSetup,
-                    release: 1,
-                    build: 2,
+                    release: ADMIN_RELEASE,
+                    build: ADMIN_BUILD,
                     releaseMetadataUri: vm.envOr("ADMIN_PLUGIN_RELEASE_METADATA_URI", DEFAULT_ADMIN_RELEASE_METADATA),
                     buildMetadataUri: vm.envOr("ADMIN_PLUGIN_BUILD_METADATA_URI", DEFAULT_ADMIN_BUILD_METADATA),
                     subdomain: vm.envOr("ADMIN_PLUGIN_SUBDOMAIN", string("admin"))
                 }),
                 multisigPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: multisigSetup,
-                    release: 1,
-                    build: 3,
+                    release: MULTISIG_RELEASE,
+                    build: MULTISIG_BUILD,
                     releaseMetadataUri: vm.envOr(
                         "MULTISIG_PLUGIN_RELEASE_METADATA_URI", DEFAULT_MULTISIG_RELEASE_METADATA
                     ),
@@ -308,8 +339,8 @@ contract DeployScript is Script, AddressBook {
                 }),
                 tokenVotingPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: tokenVotingSetup,
-                    release: 1,
-                    build: 4,
+                    release: TOKEN_VOTING_RELEASE,
+                    build: TOKEN_VOTING_BUILD,
                     releaseMetadataUri: vm.envOr(
                         "TOKEN_VOTING_PLUGIN_RELEASE_METADATA_URI", DEFAULT_TOKEN_VOTING_RELEASE_METADATA
                     ),
@@ -320,8 +351,8 @@ contract DeployScript is Script, AddressBook {
                 }),
                 stagedProposalProcessorPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: stagedProposalProcessorSetup,
-                    release: 1,
-                    build: 3,
+                    release: SPP_RELEASE,
+                    build: SPP_BUILD,
                     releaseMetadataUri: vm.envOr(
                         "STAGED_PROPOSAL_PROCESSOR_PLUGIN_RELEASE_METADATA_URI", DEFAULT_SPP_RELEASE_METADATA
                     ),
@@ -332,13 +363,25 @@ contract DeployScript is Script, AddressBook {
                 }),
                 lockToVotePlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: lockToVotePluginSetup,
-                    release: 1,
-                    build: 1,
+                    release: LTV_RELEASE,
+                    build: LTV_BUILD,
                     releaseMetadataUri: vm.envOr(
                         "LOCK_TO_VOTE_PLUGIN_RELEASE_METADATA_URI", DEFAULT_LTV_RELEASE_METADATA
                     ),
                     buildMetadataUri: vm.envOr("LOCK_TO_VOTE_PLUGIN_BUILD_METADATA_URI", DEFAULT_LTV_BUILD_METADATA),
                     subdomain: vm.envOr("LOCK_TO_VOTE_PLUGIN_SUBDOMAIN", string("lock-to-vote"))
+                }),
+                crossChainPlugin: ProtocolFactory.CorePlugin({
+                    pluginSetup: crossChainControllerSetup,
+                    release: CROSSCHAIN_RELEASE,
+                    build: CROSSCHAIN_BUILD,
+                    releaseMetadataUri: vm.envOr(
+                        "CROSSCHAIN_PLUGIN_RELEASE_METADATA_URI", DEFAULT_CROSSCHAIN_RELEASE_METADATA
+                    ),
+                    buildMetadataUri: vm.envOr(
+                        "CROSSCHAIN_PLUGIN_BUILD_METADATA_URI", DEFAULT_CROSSCHAIN_BUILD_METADATA
+                    ),
+                    subdomain: vm.envOr("CROSSCHAIN_PLUGIN_SUBDOMAIN", string("crosschain"))
                 })
             }),
             managementDao: ProtocolFactory.ManagementDaoParameters({
@@ -390,6 +433,7 @@ contract DeployScript is Script, AddressBook {
         console.log("- TokenVoting PluginRepo", deployment.tokenVotingPluginRepo);
         console.log("- SPP PluginRepo", deployment.stagedProposalProcessorPluginRepo);
         console.log("- LockToVote PluginRepo", deployment.lockToVotePluginRepo);
+        console.log("- CrossChain PluginRepo", deployment.crossChainPluginRepo);
         console.log();
 
         console.log("Other OSx contracts:");

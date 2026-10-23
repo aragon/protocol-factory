@@ -27,6 +27,8 @@ import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20
 import {StagedProposalProcessor as SPP} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 import {StagedProposalProcessorSetup} from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessorSetup.sol";
 import {LockToVotePluginSetup} from "@aragon/lock-to-vote-plugin/setup/LockToVotePluginSetup.sol";
+import {CrossChainController} from "@aragon/crosschain-plugin/CrossChainController.sol";
+import {CrossChainControllerSetup} from "@aragon/crosschain-plugin/CrossChainControllerSetup.sol";
 
 import {ALICE_ADDRESS, RANDOM_ADDRESS} from "../constants.sol";
 
@@ -57,6 +59,7 @@ contract ProtocolFactoryBuilder is Test {
     );
     StagedProposalProcessorSetup SPP_SETUP = new StagedProposalProcessorSetup(new SPP());
     LockToVotePluginSetup LTV_SETUP = new LockToVotePluginSetup();
+    CrossChainControllerSetup CROSSCHAIN_SETUP = new CrossChainControllerSetup(address(new CrossChainController()));
 
     string daoRootDomain = "dao-test";
     string managementDaoSubdomain = "management-test";
@@ -101,6 +104,14 @@ contract ProtocolFactoryBuilder is Test {
         releaseMetadataUri: "ltv-release-metadata",
         buildMetadataUri: "ltv-build-metadata",
         subdomain: "lock-to-vote-test"
+    });
+    ProtocolFactory.CorePlugin crossChainPlugin = ProtocolFactory.CorePlugin({
+        pluginSetup: CROSSCHAIN_SETUP,
+        release: 1,
+        build: 1,
+        releaseMetadataUri: "crosschain-release-metadata",
+        buildMetadataUri: "crosschain-build-metadata",
+        subdomain: "crosschain-test"
     });
 
     ProtocolFactory.ManagementDaoParameters managementDaoParams = ProtocolFactory.ManagementDaoParameters({
@@ -219,6 +230,24 @@ contract ProtocolFactoryBuilder is Test {
         return this;
     }
 
+    function withCrossChainPlugin(
+        uint8 _release,
+        uint8 _build,
+        string memory _releaseMetadataUri,
+        string memory _buildMetadataUri,
+        string memory _subdomain
+    ) public returns (ProtocolFactoryBuilder) {
+        crossChainPlugin = ProtocolFactory.CorePlugin({
+            pluginSetup: CROSSCHAIN_SETUP,
+            release: _release,
+            build: _build,
+            releaseMetadataUri: _releaseMetadataUri,
+            buildMetadataUri: _buildMetadataUri,
+            subdomain: _subdomain
+        });
+        return this;
+    }
+
     function withManagementDaoMetadataUri(string memory _metadataUri) public returns (ProtocolFactoryBuilder) {
         managementDaoParams.metadataUri = _metadataUri;
         return this;
@@ -263,6 +292,7 @@ contract ProtocolFactoryBuilder is Test {
         vm.label(address(params.corePlugins.tokenVotingPlugin.pluginSetup), "TokenVotingSetup");
         vm.label(address(params.corePlugins.stagedProposalProcessorPlugin.pluginSetup), "StagedProposalProcessorSetup");
         vm.label(address(params.corePlugins.lockToVotePlugin.pluginSetup), "LockToVotePluginSetup");
+        vm.label(address(params.corePlugins.crossChainPlugin.pluginSetup), "CrossChainControllerSetup");
 
         vm.roll(block.number + 1);
         vm.warp(block.timestamp + 1);
@@ -340,6 +370,14 @@ contract ProtocolFactoryBuilder is Test {
                     releaseMetadataUri: lockToVotePlugin.releaseMetadataUri,
                     buildMetadataUri: lockToVotePlugin.buildMetadataUri,
                     subdomain: lockToVotePlugin.subdomain
+                }),
+                crossChainPlugin: ProtocolFactory.CorePlugin({
+                    pluginSetup: CROSSCHAIN_SETUP,
+                    release: crossChainPlugin.release,
+                    build: crossChainPlugin.build,
+                    releaseMetadataUri: crossChainPlugin.releaseMetadataUri,
+                    buildMetadataUri: crossChainPlugin.buildMetadataUri,
+                    subdomain: crossChainPlugin.subdomain
                 })
             }),
             managementDao: ProtocolFactory.ManagementDaoParameters({
