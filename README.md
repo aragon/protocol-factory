@@ -150,10 +150,10 @@ just deploy       # run tests, broadcast, verify, tee to log/*
 - [ ] The factory contract was deployed by the deployment address
 - [ ] All the project's smart contracts are correctly verified on the reference block explorer of the target network.
 - [ ] The output of the latest `logs/deployment-<network>-<date>.log` file corresponds to the console output
-- [ ] A file called `artifacts/addresses-<network>-<timestamp>.json` has been created, and the addresses match those logged to the screen
+- [ ] A file called `artifacts/address-book-<network>-<timestamp>.json` (artifacts-hub `AddressBook` format) has been created, and the addresses match those logged to the screen
 - [ ] I have uploaded the following files to a shared location:
   - `logs/deployment-<network>.log` (the last one)
-  - `artifacts/addresses-<network>-<timestamp>.json`  (the last one)
+  - `artifacts/address-book-<network>-<timestamp>.json`  (the last one)
   - `broadcast/Deploy.s.sol/<chain-id>/run-<timestamp>.json` (the last one)
 - [ ] The rest of members confirm that the values are correct
 - [ ] I have transferred the remaining funds of the deployment wallet to the address that originally funded it
@@ -170,8 +170,7 @@ This is optional if you are deploying to a custom network.
 
 - [ ] I have followed [these instructions](https://github.com/aragon/osx-commons/tree/main/configs#generating-the-json-files) to generate the JSON file with the addresses for the new network
   - [ ] If needed, I have added the new network settings
-- [ ] I have followed [these instructions](https://github.com/aragon/osx/tree/main/packages/artifacts#syncing-the-deployment-addresses) for OSx
-- [ ] I have added the plugin addresses to [artifacts-hub](https://github.com/aragon/artifacts-hub) (`just ingest` there reads the new factory deployment)
+- [ ] I have added `artifacts/address-book-<network>-<timestamp>.json` to [artifacts-hub](https://github.com/aragon/artifacts-hub): it is already in its `AddressBook` format (OSx, management DAO, ENS, every plugin repo and version, condition factory) and becomes `addresses/<chainId>.json` for a new chain
 - [ ] I have created a pull request with the updated addresses files on every repository
 
 ## Using the Factory for local tests
