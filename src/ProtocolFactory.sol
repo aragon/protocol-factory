@@ -89,6 +89,7 @@ contract ProtocolFactory {
         CorePlugin tokenVotingPlugin;
         CorePlugin stagedProposalProcessorPlugin;
         CorePlugin lockToVotePlugin;
+        CorePlugin crossChainPlugin;
     }
 
     /// @notice A struct with the voting settings and metadata of the Management DAO
@@ -122,6 +123,7 @@ contract ProtocolFactory {
         address tokenVotingPluginRepo;
         address stagedProposalProcessorPluginRepo;
         address lockToVotePluginRepo;
+        address crossChainPluginRepo;
     }
 
     /// @notice Tracks the current phase of deployment
@@ -438,6 +440,7 @@ contract ProtocolFactory {
         deployment.stagedProposalProcessorPluginRepo =
             preparePluginRepo(parameters.corePlugins.stagedProposalProcessorPlugin);
         deployment.lockToVotePluginRepo = preparePluginRepo(parameters.corePlugins.lockToVotePlugin);
+        deployment.crossChainPluginRepo = preparePluginRepo(parameters.corePlugins.crossChainPlugin);
     }
 
     function preparePluginRepo(CorePlugin memory corePlugin) internal returns (address pluginRepo) {

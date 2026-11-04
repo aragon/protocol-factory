@@ -106,6 +106,11 @@ contract AddressBookTest is Test {
         _assertPlugin("token-voting", d.tokenVotingPluginRepo, p.corePlugins.tokenVotingPlugin.subdomain);
         _assertPlugin("spp", d.stagedProposalProcessorPluginRepo, p.corePlugins.stagedProposalProcessorPlugin.subdomain);
         _assertPlugin("lock-to-vote", d.lockToVotePluginRepo, p.corePlugins.lockToVotePlugin.subdomain);
+        _assertPlugin("crosschain", d.crossChainPluginRepo, p.corePlugins.crossChainPlugin.subdomain);
+
+        // The slugs of artifacts-hub's `scripts/lib/plugin-catalog.ts`, nothing else
+        string[] memory slugs = vm.parseJsonKeys(json, ".plugins");
+        assertEq(slugs.length, 6, "plugin count");
     }
 
     function test_WhenAPluginHasPlaceholderBuilds() external view {

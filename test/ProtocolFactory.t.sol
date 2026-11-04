@@ -44,6 +44,9 @@ import {
     StagedProposalProcessor as SPP
 } from "@aragon/staged-proposal-processor-plugin/StagedProposalProcessor.sol";
 import {RuledCondition} from "@aragon/osx/common/permission/condition/extensions/RuledCondition.sol";
+import {CrossChainController} from "@aragon/crosschain-plugin/CrossChainController.sol";
+import {Permissions} from "@aragon/crosschain-plugin/lib/Permissions.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {AdminSetup} from "@aragon/admin-plugin/AdminSetup.sol";
 import {MultisigSetup} from "@aragon/multisig-plugin/MultisigSetup.sol";
@@ -135,6 +138,7 @@ contract ProtocolFactoryTest is AragonTest {
         assertEq(deployment.multisigPluginRepo, address(0));
         assertEq(deployment.tokenVotingPluginRepo, address(0));
         assertEq(deployment.stagedProposalProcessorPluginRepo, address(0));
+        assertEq(deployment.crossChainPluginRepo, address(0));
     }
 
     modifier whenInvokingDeployOnce() {
@@ -171,6 +175,7 @@ contract ProtocolFactoryTest is AragonTest {
         assertNotEq(deployment.multisigPluginRepo, address(0));
         assertNotEq(deployment.tokenVotingPluginRepo, address(0));
         assertNotEq(deployment.stagedProposalProcessorPluginRepo, address(0));
+        assertNotEq(deployment.crossChainPluginRepo, address(0));
 
         // Check a few key implementations match the params
         assertEq(deployment.globalExecutor, deploymentParams.osxImplementations.globalExecutor);
@@ -331,6 +336,28 @@ contract ProtocolFactoryTest is AragonTest {
         assertNotEq(deployment.daoFactory, address(0));
         assertNotEq(deployment.managementDao, address(0));
         assertNotEq(deployment.pluginRepoRegistry, address(0));
+    }
+
+    /// @dev Isolated, so that every call starts cold, as a separate transaction would
+    /// forge-config: default.isolate = true
+    function test_EveryDeploymentTransactionFitsTheEip7825GasCap() external whenInvokingPhasedDeployment {
+        // A larger Management DAO than any real one, for headroom
+        address[] memory members = new address[](20);
+        for (uint256 i; i < members.length; i++) {
+            members[i] = address(uint160(0x1000 + i));
+        }
+        builder.withManagementDaoMembers(members).withManagementDaoMinApprovals(3);
+
+        uint256 gasBefore = gasleft();
+        factory = builder.build();
+        _assertFitsTheGasCap(gasBefore - gasleft(), "Factory deployment");
+
+        bool complete;
+        while (!complete) {
+            gasBefore = gasleft();
+            complete = factory.deployPhase();
+            _assertFitsTheGasCap(gasBefore - gasleft(), "Deployment phase");
+        }
     }
 
     function test_DeployPhaseIsNoopAfterCompletion() external whenInvokingPhasedDeployment {
@@ -616,6 +643,19 @@ contract ProtocolFactoryTest is AragonTest {
         hash1 = hash2;
 
         // 13
+        factory = builder.withCrossChainPlugin(3, 4, "releaseMeta-cc", "buildMeta-cc", "crossChain-1").build();
+        hash2 = keccak256(abi.encode(factory.getParameters()));
+
+        assertNotEq(hash1, hash2, "Different input params should produce different values");
+        ProtocolFactory.CorePlugin memory plugin = factory.getParameters().corePlugins.crossChainPlugin;
+        assertEq(plugin.release, 3, "CrossChain plugin release mismatch");
+        assertEq(plugin.build, 4, "CrossChain plugin build mismatch");
+        assertEq(plugin.releaseMetadataUri, "releaseMeta-cc", "CrossChain plugin releaseMetadataUri mismatch");
+        assertEq(plugin.buildMetadataUri, "buildMeta-cc", "CrossChain plugin buildMetadataUri mismatch");
+        assertEq(plugin.subdomain, "crossChain-1", "CrossChain plugin subdomain mismatch");
+        hash1 = hash2;
+
+        // 14
         factory = builder.withManagementDaoMetadataUri("meta-1234").build();
         hash2 = keccak256(abi.encode(factory.getParameters()));
 
@@ -623,7 +663,7 @@ contract ProtocolFactoryTest is AragonTest {
         assertEq(factory.getParameters().managementDao.metadataUri, "meta-1234", "Management DAO metadataUri mismatch");
         hash1 = hash2;
 
-        // 14
+        // 15
         factory = builder.withManagementDaoMembers(new address[](1)).build();
         hash2 = keccak256(abi.encode(factory.getParameters()));
 
@@ -631,7 +671,7 @@ contract ProtocolFactoryTest is AragonTest {
         assertEq(factory.getParameters().managementDao.members.length, 1, "Management DAO members list mismatch");
         hash1 = hash2;
 
-        // 15
+        // 16
         factory = builder.withManagementDaoMinApprovals(10).build();
         hash2 = keccak256(abi.encode(factory.getParameters()));
 
@@ -706,6 +746,13 @@ contract ProtocolFactoryTest is AragonTest {
         assertEq(
             PluginRepo(deployment.stagedProposalProcessorPluginRepo).getLatestVersion(1).pluginSetup,
             address(deploymentParams.corePlugins.stagedProposalProcessorPlugin.pluginSetup)
+        );
+        assertNotEq(deployment.crossChainPluginRepo, address(0));
+        assertEq(PluginRepo(deployment.crossChainPluginRepo).latestRelease(), 1);
+        assertEq(PluginRepo(deployment.crossChainPluginRepo).buildCount(1), 1, "No placeholder builds");
+        assertEq(
+            PluginRepo(deployment.crossChainPluginRepo).getLatestVersion(1).pluginSetup,
+            address(deploymentParams.corePlugins.crossChainPlugin.pluginSetup)
         );
     }
 
@@ -1262,6 +1309,59 @@ contract ProtocolFactoryTest is AragonTest {
         assertEq(targetDao.daoURI(), newDaoUri, "Execution failed");
     }
 
+    function test_WhenPreparingACrossChainPluginInstallation() external givenAProtocolDeployment {
+        DAO targetDao = _createTestDao("crosschaintestdao", deployment);
+        PluginSetupProcessor psp = PluginSetupProcessor(deployment.pluginSetupProcessor);
+
+        // Dedicated executor (address(0)), with a guardian
+        bytes memory setupData = abi.encode(address(0), alice, uint256(45_000));
+
+        // It should complete normally
+        (address pluginAddress, IPluginSetup.PreparedSetupData memory preparedSetupData) = psp.prepareInstallation(
+            address(targetDao), PluginSetupProcessor.PrepareInstallationParams(_crossChainSetupRef(), setupData)
+        );
+        assertNotEq(pluginAddress, address(0));
+        assertTrue(pluginAddress.code.length > 0, "No code at plugin address");
+        // 7 for the DAO, RETRY for anyone and PAUSE for the guardian
+        assertEq(preparedSetupData.permissions.length, 9, "Wrong crosschain permissions");
+        assertEq(preparedSetupData.helpers.length, 1, "Wrong crosschain helpers");
+        assertEq(Ownable(preparedSetupData.helpers[0]).owner(), pluginAddress, "Executor not owned by the plugin");
+    }
+
+    function test_WhenApplyingACrossChainPluginInstallation() external givenAProtocolDeployment {
+        DAO targetDao = _createTestDao("dao-with-crosschain", deployment);
+
+        bytes memory setupData = abi.encode(address(0), alice, uint256(45_000));
+        CrossChainController controller =
+            CrossChainController(payable(_installPlugin(targetDao, _crossChainSetupRef(), setupData)));
+        vm.label(address(controller), "CrossChainController");
+
+        // It should be bound to the DAO, with a dedicated executor
+        assertEq(address(controller.dao()), address(targetDao), "DAO mismatch");
+        assertEq(controller.minFailedMessageGas(), 45_000, "minFailedMessageGas mismatch");
+        assertEq(Ownable(controller.executor()).owner(), address(controller), "Executor not owned by the plugin");
+        assertTrue(
+            targetDao.hasPermission(
+                address(controller), address(targetDao), Permissions.FORWARD_MESSAGE_PERMISSION_ID, ""
+            ),
+            "The DAO should be able to forward messages"
+        );
+
+        // It should allow the guardian to pause, but only the DAO to unpause
+        vm.prank(alice);
+        controller.pause();
+        assertTrue(controller.paused(), "Guardian could not pause");
+
+        vm.prank(alice);
+        vm.expectRevert();
+        controller.unpause();
+
+        Action[] memory actions = new Action[](1);
+        actions[0] = Action({to: address(controller), value: 0, data: abi.encodeCall(CrossChainController.unpause, ())});
+        targetDao.execute(bytes32(0), actions, 0);
+        assertFalse(controller.paused(), "The DAO could not unpause");
+    }
+
     function test_WhenCallingHasPermission() external givenAProtocolDeployment {
         // It Returns true on all the permissions that the Management DAO should have on itself
         // It Returns false on all the temporary permissions granted to the factory
@@ -1663,261 +1763,11 @@ contract ProtocolFactoryTest is AragonTest {
 
         // PLUGINS
 
-        // ADMIN
-        // MAINTAINER_PERMISSION_ID
-        assertTrue(
-            PluginRepo(deployment.adminPluginRepo)
-                .isGranted(
-                    deployment.adminPluginRepo,
-                    deployment.managementDao,
-                    PluginRepo(deployment.adminPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should have MAINTAINER_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.adminPluginRepo)
-                .isGranted(
-                    deployment.adminPluginRepo,
-                    address(factory),
-                    PluginRepo(deployment.adminPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have MAINTAINER_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.adminPluginRepo)
-                .isGranted(
-                    deployment.adminPluginRepo,
-                    address(this),
-                    PluginRepo(deployment.adminPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have MAINTAINER_PERMISSION_ID"
-        );
-        // UPGRADE_REPO_PERMISSION_ID
-        assertTrue(
-            PluginRepo(deployment.adminPluginRepo)
-                .isGranted(
-                    deployment.adminPluginRepo,
-                    deployment.managementDao,
-                    PluginRepo(deployment.adminPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should have UPGRADE_REPO_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.adminPluginRepo)
-                .isGranted(
-                    deployment.adminPluginRepo,
-                    address(factory),
-                    PluginRepo(deployment.adminPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have UPGRADE_REPO_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.adminPluginRepo)
-                .isGranted(
-                    deployment.adminPluginRepo,
-                    address(this),
-                    PluginRepo(deployment.adminPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have UPGRADE_REPO_PERMISSION_ID"
-        );
-
-        // MULTISIG
-        // MAINTAINER_PERMISSION_ID
-        assertTrue(
-            PluginRepo(deployment.multisigPluginRepo)
-                .isGranted(
-                    deployment.multisigPluginRepo,
-                    deployment.managementDao,
-                    PluginRepo(deployment.multisigPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should have MAINTAINER_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.multisigPluginRepo)
-                .isGranted(
-                    deployment.multisigPluginRepo,
-                    address(factory),
-                    PluginRepo(deployment.multisigPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have MAINTAINER_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.multisigPluginRepo)
-                .isGranted(
-                    deployment.multisigPluginRepo,
-                    address(this),
-                    PluginRepo(deployment.multisigPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have MAINTAINER_PERMISSION_ID"
-        );
-        // UPGRADE_REPO_PERMISSION_ID
-        assertTrue(
-            PluginRepo(deployment.multisigPluginRepo)
-                .isGranted(
-                    deployment.multisigPluginRepo,
-                    deployment.managementDao,
-                    PluginRepo(deployment.multisigPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should have UPGRADE_REPO_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.multisigPluginRepo)
-                .isGranted(
-                    deployment.multisigPluginRepo,
-                    address(factory),
-                    PluginRepo(deployment.multisigPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have UPGRADE_REPO_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.multisigPluginRepo)
-                .isGranted(
-                    deployment.multisigPluginRepo,
-                    address(this),
-                    PluginRepo(deployment.multisigPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have UPGRADE_REPO_PERMISSION_ID"
-        );
-
-        // TOKEN VOTING
-        // MAINTAINER_PERMISSION_ID
-        assertTrue(
-            PluginRepo(deployment.tokenVotingPluginRepo)
-                .isGranted(
-                    deployment.tokenVotingPluginRepo,
-                    deployment.managementDao,
-                    PluginRepo(deployment.tokenVotingPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should have MAINTAINER_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.tokenVotingPluginRepo)
-                .isGranted(
-                    deployment.tokenVotingPluginRepo,
-                    address(factory),
-                    PluginRepo(deployment.tokenVotingPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have MAINTAINER_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.tokenVotingPluginRepo)
-                .isGranted(
-                    deployment.tokenVotingPluginRepo,
-                    address(this),
-                    PluginRepo(deployment.tokenVotingPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have MAINTAINER_PERMISSION_ID"
-        );
-        // UPGRADE_REPO_PERMISSION_ID
-        assertTrue(
-            PluginRepo(deployment.tokenVotingPluginRepo)
-                .isGranted(
-                    deployment.tokenVotingPluginRepo,
-                    deployment.managementDao,
-                    PluginRepo(deployment.tokenVotingPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should have UPGRADE_REPO_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.tokenVotingPluginRepo)
-                .isGranted(
-                    deployment.tokenVotingPluginRepo,
-                    address(factory),
-                    PluginRepo(deployment.tokenVotingPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have UPGRADE_REPO_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.tokenVotingPluginRepo)
-                .isGranted(
-                    deployment.tokenVotingPluginRepo,
-                    address(this),
-                    PluginRepo(deployment.tokenVotingPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have UPGRADE_REPO_PERMISSION_ID"
-        );
-
-        // SPP
-        // MAINTAINER_PERMISSION_ID
-        assertTrue(
-            PluginRepo(deployment.stagedProposalProcessorPluginRepo)
-                .isGranted(
-                    deployment.stagedProposalProcessorPluginRepo,
-                    deployment.managementDao,
-                    PluginRepo(deployment.stagedProposalProcessorPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should have MAINTAINER_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.stagedProposalProcessorPluginRepo)
-                .isGranted(
-                    deployment.stagedProposalProcessorPluginRepo,
-                    address(factory),
-                    PluginRepo(deployment.stagedProposalProcessorPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have MAINTAINER_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.stagedProposalProcessorPluginRepo)
-                .isGranted(
-                    deployment.stagedProposalProcessorPluginRepo,
-                    address(this),
-                    PluginRepo(deployment.stagedProposalProcessorPluginRepo).MAINTAINER_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have MAINTAINER_PERMISSION_ID"
-        );
-        // UPGRADE_REPO_PERMISSION_ID
-        assertTrue(
-            PluginRepo(deployment.stagedProposalProcessorPluginRepo)
-                .isGranted(
-                    deployment.stagedProposalProcessorPluginRepo,
-                    deployment.managementDao,
-                    PluginRepo(deployment.stagedProposalProcessorPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should have UPGRADE_REPO_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.stagedProposalProcessorPluginRepo)
-                .isGranted(
-                    deployment.stagedProposalProcessorPluginRepo,
-                    address(factory),
-                    PluginRepo(deployment.stagedProposalProcessorPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have UPGRADE_REPO_PERMISSION_ID"
-        );
-        assertFalse(
-            PluginRepo(deployment.stagedProposalProcessorPluginRepo)
-                .isGranted(
-                    deployment.stagedProposalProcessorPluginRepo,
-                    address(this),
-                    PluginRepo(deployment.stagedProposalProcessorPluginRepo).UPGRADE_REPO_PERMISSION_ID(),
-                    ""
-                ),
-            "Should not have UPGRADE_REPO_PERMISSION_ID"
-        );
+        _assertPluginRepoPermissions(deployment.adminPluginRepo);
+        _assertPluginRepoPermissions(deployment.multisigPluginRepo);
+        _assertPluginRepoPermissions(deployment.tokenVotingPluginRepo);
+        _assertPluginRepoPermissions(deployment.stagedProposalProcessorPluginRepo);
+        _assertPluginRepoPermissions(deployment.crossChainPluginRepo);
     }
 
     function test_WhenUpgradingTheProtocol() external givenAProtocolDeployment {
@@ -2352,6 +2202,33 @@ contract ProtocolFactoryTest is AragonTest {
     }
 
     // Helpers
+
+    /// @dev EIP-7825 caps every transaction at 2^24 gas. The intrinsic 21k of a transaction is not metered here.
+    function _assertFitsTheGasCap(uint256 _gasUsed, string memory _label) private pure {
+        assertLt(_gasUsed + 21_000, 2 ** 24, _label);
+    }
+
+    function _crossChainSetupRef() private view returns (PluginSetupRef memory) {
+        return PluginSetupRef(
+            PluginRepo.Tag(
+                deploymentParams.corePlugins.crossChainPlugin.release,
+                deploymentParams.corePlugins.crossChainPlugin.build
+            ),
+            PluginRepo(deployment.crossChainPluginRepo)
+        );
+    }
+
+    /// @dev Only the Management DAO can maintain and upgrade the repo. Neither the factory nor the deployer can.
+    function _assertPluginRepoPermissions(address _repo) private view {
+        PluginRepo repo = PluginRepo(_repo);
+        bytes32[2] memory permissionIds = [repo.MAINTAINER_PERMISSION_ID(), repo.UPGRADE_REPO_PERMISSION_ID()];
+
+        for (uint256 i; i < permissionIds.length; i++) {
+            assertTrue(repo.isGranted(_repo, deployment.managementDao, permissionIds[i], ""), "Management DAO lacks it");
+            assertFalse(repo.isGranted(_repo, address(factory), permissionIds[i], ""), "Factory should not have it");
+            assertFalse(repo.isGranted(_repo, address(this), permissionIds[i], ""), "Deployer should not have it");
+        }
+    }
 
     function _getImplementation(address proxy) private view returns (address) {
         return address(
