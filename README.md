@@ -335,7 +335,7 @@ ProtocolFactory.DeploymentParameters memory params = ProtocolFactory.DeploymentP
         stagedProposalProcessorPlugin: ProtocolFactory.CorePlugin({
             pluginSetup: stagedProposalProcessorSetup,
             release: 1,
-            build: 1,
+            build: 3,
             releaseMetadataUri: releaseMetadataUri,
             buildMetadataUri: buildMetadataUri,
             subdomain: subdomain
