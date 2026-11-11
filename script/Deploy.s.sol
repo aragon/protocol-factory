@@ -2,7 +2,6 @@
 pragma solidity ^0.8.17;
 
 import {Script, console} from "forge-std/Script.sol";
-import {stdJson} from "forge-std/StdJson.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import {DAO} from "@aragon/osx/core/dao/DAO.sol";
@@ -34,12 +33,17 @@ import {IPlugin} from "@aragon/osx/common/plugin/IPlugin.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
+import {CrossChainController} from "@aragon/crosschain-plugin/CrossChainController.sol";
+import {CrossChainControllerSetup} from "@aragon/crosschain-plugin/CrossChainControllerSetup.sol";
+import {Executor as CrossChainExecutor} from "@aragon/crosschain-plugin/Executor.sol";
+
 import {ConditionFactory} from "@aragon/condition-library/factory/ConditionFactory.sol";
 import {ExecuteSelectorCondition} from "@aragon/condition-library/ExecuteSelectorCondition.sol";
 import {SelectorCondition} from "@aragon/condition-library/SelectorCondition.sol";
 import {SafeOwnerCondition, IOwnerManager} from "@aragon/condition-library/SafeOwnerCondition.sol";
 
 import {ProtocolFactory} from "../src/ProtocolFactory.sol";
+import {AddressBook} from "./AddressBook.sol";
 import {DAOHelper} from "../src/helpers/DAOHelper.sol";
 import {PluginRepoHelper} from "../src/helpers/PluginRepoHelper.sol";
 import {PSPHelper} from "../src/helpers/PSPHelper.sol";
@@ -50,9 +54,7 @@ import {ENSHelper} from "../src/helpers/ENSHelper.sol";
 /// @dev Given that deploying the factory with all contracts embedded would hit the gas limit, the deployment has two stages:
 /// @dev 1) Deploy the raw contracts and store their addresses locally (this file)
 /// @dev 2) Deploy the factory with the addresses above and tell it to orchestrate the protocol deployment
-contract DeployScript is Script {
-    using stdJson for string;
-
+contract DeployScript is Script, AddressBook {
     // Constants
     string constant VERSION = "1.4";
     string constant DEFAULT_DAO_ENS_DOMAIN = "dao";
@@ -60,16 +62,32 @@ contract DeployScript is Script {
     string constant DEFAULT_PLUGIN_ENS_SUBDOMAIN = "plugin";
     string constant DEFAULT_MANAGEMENT_DAO_MEMBERS_FILE_NAME = "multisig-members.json";
 
-    string DEFAULT_ADMIN_RELEASE_METADATA = "ipfs://bafkreifbwooo3h36htzscftwm3kouoktcvkqyhaxluodo6xkyprnon3r54";
-    string DEFAULT_ADMIN_BUILD_METADATA = "ipfs://bafkreifijshftf47q5mtoibfvwkzv42reqf4uddi46i7kcblt6bpsvgii4";
-    string DEFAULT_MULTISIG_RELEASE_METADATA = "ipfs://bafkreiesxfvwf7qphbpw2epmabrrz2alwo66fso7tjx3cbt63k4xzec3ma";
-    string DEFAULT_MULTISIG_BUILD_METADATA = "ipfs://bafkreiaipjj2ryy2ui77crwmgbamjkmr6xbdvrviylh4z4kf54sq2etvgu";
+    // Plugin versions (release, build) to publish. Earlier builds get a placeholder.
+    uint8 constant ADMIN_RELEASE = 1;
+    uint8 constant ADMIN_BUILD = 2;
+    uint8 constant MULTISIG_RELEASE = 1;
+    uint8 constant MULTISIG_BUILD = 3;
+    uint8 constant TOKEN_VOTING_RELEASE = 1;
+    uint8 constant TOKEN_VOTING_BUILD = 4;
+    uint8 constant SPP_RELEASE = 1;
+    uint8 constant SPP_BUILD = 3;
+    uint8 constant LTV_RELEASE = 1;
+    uint8 constant LTV_BUILD = 1;
+    uint8 constant CROSSCHAIN_RELEASE = 1;
+    uint8 constant CROSSCHAIN_BUILD = 1;
+
+    string DEFAULT_ADMIN_RELEASE_METADATA = "ipfs://QmYBiJKv2y6kGjwd11D9fRnHT3aXRD6HXG91QQLZzieRK6";
+    string DEFAULT_ADMIN_BUILD_METADATA = "ipfs://QmfWLgS9tQSSd7bKZ7RT1yURFrRwZgkwpzVJVRH1deTTYe";
+    string DEFAULT_MULTISIG_RELEASE_METADATA = "ipfs://QmRfQ7ghLZFy5DHQ63eDK3iPfXUP6igoupFYsy9whhYyJq";
+    string DEFAULT_MULTISIG_BUILD_METADATA = "ipfs://QmRVs5yJzJ7rFPGRvVnzvimj63N7pWPzd169rud698AwsZ";
     string DEFAULT_TOKEN_VOTING_RELEASE_METADATA = "ipfs://QmWjZArvePnMPgbfKAMW3TidbqHEy68UV6SvRBhiaygGta";
-    string DEFAULT_TOKEN_VOTING_BUILD_METADATA = "ipfs://QmfXUy5Lc4iqg8DvgWdSSD2ZhCmCGvE2WTdWYFE9sosCRc";
+    string DEFAULT_TOKEN_VOTING_BUILD_METADATA = "ipfs://QmdLJo4VqwN8jPFf2svZpG5i5kVZX61s8w519qxUXM7X7g";
     string DEFAULT_SPP_RELEASE_METADATA = "ipfs://bafkreif23p6yw325rkwwlhgkudiasvq64lonqmfnt7ls5ksfam5hedcb4m";
-    string DEFAULT_SPP_BUILD_METADATA = "ipfs://bafkreifia6hhz7klfbaqawd4vcplkoiesycbmrf5c2x24zfuivyn35mfsu";
+    string DEFAULT_SPP_BUILD_METADATA = "ipfs://QmPJErCM2FV8YpJGNjNy4U5yDgHwTNczwEfMZ9SHhBTa64";
     string DEFAULT_LTV_RELEASE_METADATA = "ipfs://Qmb2zmXKTFucochyetSTaT9wFXGUFENp25XBB7CDprXmyQ";
     string DEFAULT_LTV_BUILD_METADATA = "ipfs://QmV17NAoAX9oo1D6QUV9iw8CjugdQEJcacr9TUMtJYCJ3w";
+    string DEFAULT_CROSSCHAIN_RELEASE_METADATA = "ipfs://QmSfiCe5sCkrbA7gw6xriqCVx8iR1C2eAqL1iWYp9HbDAV";
+    string DEFAULT_CROSSCHAIN_BUILD_METADATA = "ipfs://QmZuSnnzNFA9Zw2Vzb1KgaxCqox5uzYBR3UUhbef3FoUzy";
     string DEFAULT_MANAGEMENT_DAO_METADATA = "ipfs://bafkreibemfrxeuwfaono6k37vbi66fctcwtioiyctrl4fvqtqmiodt2mle";
 
     DAO daoBase;
@@ -84,6 +102,7 @@ contract DeployScript is Script {
     TokenVotingSetup tokenVotingSetup;
     StagedProposalProcessorSetup stagedProposalProcessorSetup;
     LockToVotePluginSetup lockToVotePluginSetup;
+    CrossChainControllerSetup crossChainControllerSetup;
 
     ConditionFactory conditionFactory;
 
@@ -116,6 +135,7 @@ contract DeployScript is Script {
         deployTokenVotingSetup();
         deployStagedProposalProcessorSetup();
         deployLockToVoteSetup();
+        deployCrossChainSetup();
 
         deployConditionFactory();
 
@@ -130,8 +150,9 @@ contract DeployScript is Script {
         // Done
         printDeployment();
 
-        if (!vm.envOr("SIMULATE", false)) {
-            writeJsonAddresses();
+        if (!vm.envOr("SIMULATION", false)) {
+            string memory path = _writeAddressBook(factory, address(conditionFactory), vm.envString("NETWORK_NAME"));
+            console.log("Address book (artifacts-hub format) written to", path);
         }
     }
 
@@ -234,6 +255,15 @@ contract DeployScript is Script {
         new MinVotingPowerCondition(ILockToGovernBase(dummyPlugin));
     }
 
+    function deployCrossChainSetup() internal {
+        crossChainControllerSetup = new CrossChainControllerSetup(address(new CrossChainController()));
+        vm.label(address(crossChainControllerSetup), "CrossChainControllerSetup");
+
+        // Deploy a dummy instance to force source verification on block explorers
+        /// @dev The setup only creates Executors during prepareInstallation
+        new CrossChainExecutor();
+    }
+
     function deployConditionFactory() internal {
         conditionFactory = new ConditionFactory();
         vm.label(address(conditionFactory), "ConditionFactory");
@@ -291,16 +321,16 @@ contract DeployScript is Script {
             corePlugins: ProtocolFactory.CorePlugins({
                 adminPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: adminSetup,
-                    release: 1,
-                    build: 2,
+                    release: ADMIN_RELEASE,
+                    build: ADMIN_BUILD,
                     releaseMetadataUri: vm.envOr("ADMIN_PLUGIN_RELEASE_METADATA_URI", DEFAULT_ADMIN_RELEASE_METADATA),
                     buildMetadataUri: vm.envOr("ADMIN_PLUGIN_BUILD_METADATA_URI", DEFAULT_ADMIN_BUILD_METADATA),
                     subdomain: vm.envOr("ADMIN_PLUGIN_SUBDOMAIN", string("admin"))
                 }),
                 multisigPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: multisigSetup,
-                    release: 1,
-                    build: 3,
+                    release: MULTISIG_RELEASE,
+                    build: MULTISIG_BUILD,
                     releaseMetadataUri: vm.envOr(
                         "MULTISIG_PLUGIN_RELEASE_METADATA_URI", DEFAULT_MULTISIG_RELEASE_METADATA
                     ),
@@ -309,8 +339,8 @@ contract DeployScript is Script {
                 }),
                 tokenVotingPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: tokenVotingSetup,
-                    release: 1,
-                    build: 4,
+                    release: TOKEN_VOTING_RELEASE,
+                    build: TOKEN_VOTING_BUILD,
                     releaseMetadataUri: vm.envOr(
                         "TOKEN_VOTING_PLUGIN_RELEASE_METADATA_URI", DEFAULT_TOKEN_VOTING_RELEASE_METADATA
                     ),
@@ -321,8 +351,8 @@ contract DeployScript is Script {
                 }),
                 stagedProposalProcessorPlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: stagedProposalProcessorSetup,
-                    release: 1,
-                    build: 1,
+                    release: SPP_RELEASE,
+                    build: SPP_BUILD,
                     releaseMetadataUri: vm.envOr(
                         "STAGED_PROPOSAL_PROCESSOR_PLUGIN_RELEASE_METADATA_URI", DEFAULT_SPP_RELEASE_METADATA
                     ),
@@ -333,13 +363,25 @@ contract DeployScript is Script {
                 }),
                 lockToVotePlugin: ProtocolFactory.CorePlugin({
                     pluginSetup: lockToVotePluginSetup,
-                    release: 1,
-                    build: 1,
+                    release: LTV_RELEASE,
+                    build: LTV_BUILD,
                     releaseMetadataUri: vm.envOr(
                         "LOCK_TO_VOTE_PLUGIN_RELEASE_METADATA_URI", DEFAULT_LTV_RELEASE_METADATA
                     ),
                     buildMetadataUri: vm.envOr("LOCK_TO_VOTE_PLUGIN_BUILD_METADATA_URI", DEFAULT_LTV_BUILD_METADATA),
                     subdomain: vm.envOr("LOCK_TO_VOTE_PLUGIN_SUBDOMAIN", string("lock-to-vote"))
+                }),
+                crossChainPlugin: ProtocolFactory.CorePlugin({
+                    pluginSetup: crossChainControllerSetup,
+                    release: CROSSCHAIN_RELEASE,
+                    build: CROSSCHAIN_BUILD,
+                    releaseMetadataUri: vm.envOr(
+                        "CROSSCHAIN_PLUGIN_RELEASE_METADATA_URI", DEFAULT_CROSSCHAIN_RELEASE_METADATA
+                    ),
+                    buildMetadataUri: vm.envOr(
+                        "CROSSCHAIN_PLUGIN_BUILD_METADATA_URI", DEFAULT_CROSSCHAIN_BUILD_METADATA
+                    ),
+                    subdomain: vm.envOr("CROSSCHAIN_PLUGIN_SUBDOMAIN", string("crosschain"))
                 })
             }),
             managementDao: ProtocolFactory.ManagementDaoParameters({
@@ -391,6 +433,7 @@ contract DeployScript is Script {
         console.log("- TokenVoting PluginRepo", deployment.tokenVotingPluginRepo);
         console.log("- SPP PluginRepo", deployment.stagedProposalProcessorPluginRepo);
         console.log("- LockToVote PluginRepo", deployment.lockToVotePluginRepo);
+        console.log("- CrossChain PluginRepo", deployment.crossChainPluginRepo);
         console.log();
 
         console.log("Other OSx contracts:");
@@ -401,58 +444,6 @@ contract DeployScript is Script {
         console.log("Conditions:");
         console.log("- ConditionFactory", address(conditionFactory));
         console.log();
-    }
-
-    function writeJsonAddresses() internal {
-        ProtocolFactory.Deployment memory deployment = factory.getDeployment();
-
-        string memory osxAddresses = "osxAddresses";
-        string memory ensAddresses = "ensAddresses";
-        string memory corePluginsAddresses = "corePluginsAddresses";
-
-        // OSx static contracts
-        osxAddresses.serialize("daoFactory", deployment.daoFactory);
-        osxAddresses.serialize("pluginRepoFactory", deployment.pluginRepoFactory);
-        osxAddresses.serialize("pluginSetupProcessor", deployment.pluginSetupProcessor);
-        osxAddresses.serialize("globalExecutor", deployment.globalExecutor);
-        osxAddresses.serialize("placeholderSetup", deployment.placeholderSetup);
-
-        // OSx proxies
-        osxAddresses.serialize("daoRegistry", deployment.daoRegistry);
-        osxAddresses.serialize("pluginRepoRegistry", deployment.pluginRepoRegistry);
-        osxAddresses.serialize("managementDao", deployment.managementDao);
-        osxAddresses = osxAddresses.serialize("managementDaoMultisig", deployment.managementDaoMultisig);
-
-        // ENS
-        ensAddresses.serialize("ensRegistry", deployment.ensRegistry);
-        ensAddresses.serialize("daoSubdomainRegistrar", deployment.daoSubdomainRegistrar);
-        ensAddresses.serialize("pluginSubdomainRegistrar", deployment.pluginSubdomainRegistrar);
-        ensAddresses = ensAddresses.serialize("publicResolver", deployment.publicResolver);
-
-        // Plugin Repo's
-        corePluginsAddresses.serialize("adminPluginRepo", deployment.adminPluginRepo);
-        corePluginsAddresses.serialize("multisigPluginRepo", deployment.multisigPluginRepo);
-        corePluginsAddresses.serialize("tokenVotingPluginRepo", deployment.tokenVotingPluginRepo);
-        corePluginsAddresses.serialize(
-            "stagedProposalProcessorPluginRepo", deployment.stagedProposalProcessorPluginRepo
-        );
-        corePluginsAddresses = corePluginsAddresses.serialize("lockToVotePluginRepo", deployment.lockToVotePluginRepo);
-
-        // Store the stringified JSON to the variable, as we won't need the key any longer
-        string memory version = "versionObject";
-        version.serialize("osx", osxAddresses);
-        version.serialize("ens", ensAddresses);
-        version.serialize("corePlugins", corePluginsAddresses);
-        version.serialize("protocolFactory", address(factory));
-        version = version.serialize("conditionFactory", address(conditionFactory));
-
-        string memory networkName = vm.envString("NETWORK_NAME");
-        string memory filePath = string.concat(
-            vm.projectRoot(), "/artifacts/addresses-", networkName, "-", Strings.toString(block.timestamp), ".json"
-        );
-        version.write(filePath);
-
-        console.log("Deployment addresses written to", filePath);
     }
 }
 

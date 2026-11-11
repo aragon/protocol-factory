@@ -3,12 +3,13 @@
 
 @aragon/osx/=lib/osx/src/
 @aragon/osx-commons-contracts/src/=lib/osx/src/common/
-@aragon/admin-plugin/=lib/admin-plugin/packages/contracts/src/
-@aragon/multisig-plugin/=lib/multisig-plugin/packages/contracts/src/
+@aragon/admin-plugin/=lib/admin-plugin/src/
+@aragon/multisig-plugin/=lib/multisig-plugin/src/
 @aragon/token-voting-plugin/=lib/token-voting-plugin/src/
 @aragon/staged-proposal-processor-plugin/=lib/staged-proposal-processor-plugin/src/
 
 @aragon/lock-to-vote-plugin/=lib/lock-to-vote-plugin/src/
+@aragon/crosschain-plugin/=lib/crosschain/src/
 @aragon/condition-library/=lib/condition-library/src/
 
 @ensdomains/ens-contracts/=lib/ens-contracts/

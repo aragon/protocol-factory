@@ -16,37 +16,44 @@ For local testing, see [Using the Factory for local tests](#using-the-factory-fo
 $ just help
 Available recipes:
     default
-    help                                    # Show available commands
-
-    [setup]
-    init network="mainnet"                  # Initialize the project for a given network (default: mainnet)
-    switch network                          # Select the active network
-    setup                                   # Install Foundry
-
-    [script]
-    predeploy                               # Simulate the deploy script
-    deploy                                  # Deploy: run tests, broadcast, tee to log
-    resume-deploy                           # Resume a pending deployment
-    run script *args                        # Run a forge script (broadcast)
-    simulate script                         # Simulate a forge script (no broadcast)
-
-    [helpers]
-    env                                     # Show current environment (resolved values + sources)
-    balance                                 # Show current wallet balance
-
-    [test]
-    test *args                              # Run all unit tests
-    test-fork *args                         # Run fork tests (requires RPC_URL)
-    test-coverage                           # Generate HTML coverage report under ./report
+    help                       # Show available commands
 
     [develop]
-    clean                                   # Clean compiler artifacts and coverage reports
-    storage-info contract                   # Show the storage layout of a contract
-    anvil                                   # Start a forked EVM (set FORK_BLOCK_NUMBER in .env to pin a block)
+    anvil                      # Start a forked EVM (set FORK_BLOCK_NUMBER in .env to pin a block)
+    check-upgrade from to      # Example: just check-upgrade MyContractV1 MyContractV2
+    clean                      # Clean compiler artifacts and coverage reports
+    storage-info contract      # Show the storage layout of a contract
+
+    [helpers]
+    balance                    # Show current wallet balance
+    env                        # Show current environment (resolved values + sources)
+    ipfs-pin file              # Pin a file to IPFS via Pinata (requires PINATA_JWT in vars or .env)
+
+    [maintenance]
+    sync-addresses *args       # Sync networks/*.env from artifacts-hub JSONs (--dry-run to preview, --force to overwrite conflicts)
+
+    [script]
+    deploy *args               # Deploy: run tests then broadcast (logs to logs/<contract>-<network>-<timestamp>.log)
+    predeploy                  # Dry-run the deploy script (no broadcast)
+
+    [script-base]
+    dry-run script             # Simulate running a forge script (no broadcast)
+    run script *args           # Broadcast a forge script — log name is derived from the contract name (or filename)
+
+    [setup]
+    init network="mainnet"     # Fetch dependencies, scaffold .env and select the active network
+    networks                   # List the available networks and their chain IDs (* = active)
+    setup                      # Install Foundry if missing
+    switch network override="" # Select the active network (pass "override" to create a local editable copy)
+
+    [test]
+    test *args                 # Run all unit tests
+    test-coverage              # Generate HTML coverage report under ./report
+    test-fork *args            # Run fork tests (requires RPC_URL)
 
     [verification]
-    verify verifier="" script=DEPLOY_SCRIPT # Verify all contracts from the latest broadcast
-
+    flatten target=""          # Flatten every concrete src/ contract (or one), plus ABI-encoded ctor args from broadcast/. See README > "Flatten for manual verification".
+    verify type="" script=""   # Verify all contracts from the latest broadcast (type: etherscan|blockscout|sourcify)
 ```
 
 ### Environment setup
@@ -58,7 +65,7 @@ just init sepolia
 just test
 ```
 
-This selects the active network and pulls all submodules. Then set up your environment variables.
+This pulls all submodules, creates `.env` from `.env.example` (if missing) and selects the active network. Then set up your environment variables.
 
 There are two types of variables, handled differently:
 
@@ -84,7 +91,7 @@ MANAGEMENT_DAO_MIN_APPROVALS=3
 MANAGEMENT_DAO_MEMBERS_FILE_NAME="multisig-members.json"
 MANAGEMENT_DAO_METADATA_URI="ipfs://..."
 
-# Optional ENS overrides (defaults are set in the network config)
+# Optional ENS overrides (defaults are set in script/Deploy.s.sol)
 # DAO_ENS_DOMAIN="dao"
 # MANAGEMENT_DAO_SUBDOMAIN="management"
 # PLUGIN_ENS_SUBDOMAIN="plugin"
@@ -104,7 +111,8 @@ Use `just` to simulate and deploy:
 
 ```sh
 just predeploy    # simulate — no broadcast
-just deploy       # run tests, broadcast, verify, tee to log/*
+just deploy       # run tests, broadcast, verify, tee to logs/*
+just verify       # retry the verification of the latest broadcast (if needed)
 ```
 
 ### Deployment Checklist
@@ -150,10 +158,10 @@ just deploy       # run tests, broadcast, verify, tee to log/*
 - [ ] The factory contract was deployed by the deployment address
 - [ ] All the project's smart contracts are correctly verified on the reference block explorer of the target network.
 - [ ] The output of the latest `logs/deployment-<network>-<date>.log` file corresponds to the console output
-- [ ] A file called `artifacts/addresses-<network>-<timestamp>.json` has been created, and the addresses match those logged to the screen
+- [ ] A file called `artifacts/address-book-<network>-<timestamp>.json` (artifacts-hub `AddressBook` format) has been created, and the addresses match those logged to the screen
 - [ ] I have uploaded the following files to a shared location:
   - `logs/deployment-<network>.log` (the last one)
-  - `artifacts/addresses-<network>-<timestamp>.json`  (the last one)
+  - `artifacts/address-book-<network>-<timestamp>.json`  (the last one)
   - `broadcast/Deploy.s.sol/<chain-id>/run-<timestamp>.json` (the last one)
 - [ ] The rest of members confirm that the values are correct
 - [ ] I have transferred the remaining funds of the deployment wallet to the address that originally funded it
@@ -170,12 +178,7 @@ This is optional if you are deploying to a custom network.
 
 - [ ] I have followed [these instructions](https://github.com/aragon/osx-commons/tree/main/configs#generating-the-json-files) to generate the JSON file with the addresses for the new network
   - [ ] If needed, I have added the new network settings
-- [ ] I have followed [these instructions](https://github.com/aragon/osx/tree/main/packages/artifacts#syncing-the-deployment-addresses) for OSx
-- [ ] For each plugin, I have followed the equivalent instructions
-  - https://github.com/aragon/admin-plugin/tree/main/packages/artifacts#syncing-the-deployment-addresses
-  - https://github.com/aragon/multisig-plugin/tree/main/packages/artifacts#syncing-the-deployment-addresses
-  - https://github.com/aragon/token-voting-plugin/tree/main/packages/artifacts#syncing-the-deployment-addresses
-  - https://github.com/aragon/staged-proposal-processor-plugin/tree/main/packages/artifacts#syncing-the-deployment-addresses
+- [ ] I have added `artifacts/address-book-<network>-<timestamp>.json` to [artifacts-hub](https://github.com/aragon/artifacts-hub): it is already in its `AddressBook` format (OSx, management DAO, ENS, every plugin repo and version, condition factory) and becomes `addresses/<chainId>.json` for a new chain
 - [ ] I have created a pull request with the updated addresses files on every repository
 
 ## Using the Factory for local tests
@@ -340,7 +343,7 @@ ProtocolFactory.DeploymentParameters memory params = ProtocolFactory.DeploymentP
         stagedProposalProcessorPlugin: ProtocolFactory.CorePlugin({
             pluginSetup: stagedProposalProcessorSetup,
             release: 1,
-            build: 1,
+            build: 3,
             releaseMetadataUri: releaseMetadataUri,
             buildMetadataUri: buildMetadataUri,
             subdomain: subdomain
